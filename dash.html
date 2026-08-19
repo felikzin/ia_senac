@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="pt-BR">
+ <head><script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260819-05-5fffd6c","C":{"Abril Fatface":"YACgEZbkUVE,0","Alfa Slab One":"YACgEYS9sJU,0","Anton":"YACgEcYqQ-A,0","Archivo":"YAHO2-t-jNE,0","Arial":"YAGyDvJ_4Ts,0","Bebas Neue":"YACgESME5ew,0","Bricolage Grotesque":"YAFyMcdwzpc,0","Canva Sans":"YAFLd8sKbwc,2","Caveat":"YALBs2ploWQ,0","Comic Sans MS":"YAHO2VMiyZo,0","Cormorant Garamond":"YAFdJhX-538,0","Courier New":"YAGzXiGs0_8,0","DM Sans":"YAD1aU3sLnI,0","DM Serif Display":"YAD1aYG82rc,0","Forum":"YACgEcnnqB4,0","Fraunces":"YAEul-FRQw4,0","Georgia":"YAGzXkO0pEM,0","Helvetica Neue":"YAFcf6CtJfI,0","Impact":"YAFcfnjI7Vk,0","Inter":"YAFdJvSyp_k,3","Iowan Old Style":"YAGNIFa8j9o,0","Jacques Francois":"YAHO2a5g66Q,0","JetBrains Mono":"YAFdJksXcAk,0","Libre Baskerville":"YACgEUFdPdA,0","Manrope":"YAHO2b2feC4,0","Merriweather":"YACgEXvHxxs,0","Montserrat":"YADLjI9qxTA,0","Nunito":"YACgEX8C5Gg,0","Oleo Script":"YACgEQQ14jI,0","Phantom Sans":"YAHO2E8Pb88,0","Playfair Display":"YACgEYmuCJE,0","Poppins":"YAFdJjbTu24,1","Press Start 2P":"YAFyGr-8pmQ,0","Quicksand":"YADWjpfPmdk,0","Raleway":"YACgEVg3xZg,0","Segoe UI":"YAHNdRD1Klw,0","Source Sans 3":"YAG4lO1Mj10,0","Spectral":"YAHO2rVUHIM,0","Times New Roman":"YAGzXW3gftg,0","Times":"YAGzXW3gftg,0","Ubuntu":"YACgERDU--Q,0","Work Sans":"YAGXhLOKv44,0","Yellowtail":"YACgEYG4kG4,0","ui-monospace":"YADlN8CFZ8Q,0","ui-sans-serif":"YACkoN-xg4g,0"}}');</script><script src="/_sdk/7949ff62d67710d5.telemetry_sdk.js" integrity="sha512-KIvXA82Di44YY/RH9/63A9MuTuavYgDFG8PfErJn7Wli4K0LAOk+coo/aPXk3+ZNL96nHh9VYD4PE+fLes+laQ=="></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoParts ERP</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    :root { --primary: #1e293b; --accent: #3b82f6; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
+    .sidebar { width: 260px; transition: transform 0.3s; }
+    @media(max-width:1023px) { .sidebar { transform: translateX(-100%); position: fixed; z-index: 50; } .sidebar.open { transform: translateX(0); } }
+    .page { display: none; } .page.active { display: block; }
+    .badge { padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-gray { background: #f3f4f6; color: #6b7280; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: all 0.15s; color: #64748b; font-weight: 500; }
+    .nav-item:hover, .nav-item.active { background: #f1f5f9; color: #1e293b; }
+    .kpi-card { background: #fff; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+    .table-wrap { overflow-x: auto; }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table-wrap th { text-align: left; padding: 12px 16px; background: #f8fafc; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+    .table-wrap td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; }
+    .btn-primary { background: var(--accent); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
+    .btn-primary:hover { background: #2563eb; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 40; display: none; }
+    .overlay.open { display: block; }
+  </style>
+  <script src="/_sdk/0e8d3a91e1c6f495.data_sdk.js" type="text/javascript" integrity="sha512-c00oDoGjsMgluCLLEyVl3suwEkgjOGGplVFbsilUoBg4aMKNmsL3mwsc9r0dPn95qiSZyjBousQXgROkAW7p/w=="></script>
+  <script src="/_sdk/eba18683f23e5798.resizing_sdk.js" type="text/javascript" integrity="sha512-E0UWUllhwPXaNJtjyTKXWKrIE+FruPfFpO4mRmMDP2LI+U9bOizy5npCq6xx/JyWcvSK7D3TFf2wFR2Mha9kbA=="></script>
+ </head>
+ <body data-template-id="__page-root" class="min-h-screen bg-gray-50"><!-- LOGIN PAGE -->
+  <div id="login-page" class="page active">
+   <div class="min-h-screen flex">
+    <div class="flex-1 flex items-center justify-center p-8">
+     <div class="w-full max-w-md">
+      <div class="flex items-center gap-3 mb-8">
+       <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+        <i data-lucide="settings" style="width:20px;height:20px;color:#fff"></i>
+       </div><span data-template-id="login-logo" class="canva-text text-xl font-bold text-slate-800"></span>
+      </div>
+      <h1 data-template-id="login-title" class="canva-text text-2xl font-bold text-slate-900 mb-2"></h1>
+      <p data-template-id="login-subtitle" class="canva-text text-slate-500 mb-8"></p>
+      <form id="login-form" class="space-y-5">
+       <div>
+        <label for="login-email" class="block text-sm font-medium text-slate-700 mb-1">E-mail</label><input id="login-email" type="email" data-template-id="login-email-input" class="canva-input w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+       </div>
+       <div>
+        <label for="login-pass" class="block text-sm font-medium text-slate-700 mb-1">Senha</label><input id="login-pass" type="password" data-template-id="login-pass-input" class="canva-input w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+       </div><button type="submit" data-template-id="login-btn" class="canva-button btn-primary w-full"></button>
+      </form>
+     </div>
+    </div>
+    <div class="hidden lg:block flex-1 bg-slate-900 relative overflow-hidden"><img data-template-id="login-hero-img" class="canva-image absolute inset-0 w-full h-full object-cover opacity-60" loading="lazy">
+     <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent"></div>
+     <div class="absolute bottom-12 left-12 right-12">
+      <h2 data-template-id="login-hero-title" class="canva-text text-3xl font-bold text-white mb-3"></h2>
+      <p data-template-id="login-hero-desc" class="canva-text text-slate-300"></p>
+     </div>
+    </div>
+   </div>
+  </div><!-- ADMIN AREA -->
+  <div id="admin-area" class="page">
+   <div class="flex min-h-screen">
+    <div id="sidebar-overlay" class="overlay" onclick="toggleSidebar()"></div>
+    <aside id="sidebar" class="sidebar bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0">
+     <div class="p-5 flex items-center gap-3 border-b border-slate-100">
+      <div class="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center">
+       <i data-lucide="settings" style="width:18px;height:18px;color:#fff"></i>
+      </div><span data-template-id="sidebar-brand" class="canva-text font-bold text-slate-800"></span>
+     </div>
+     <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard">
+       <i data-lucide="layout-dashboard" style="width:18px;height:18px"></i><span>Dashboard</span>
+      </div>
+      <div class="nav-item" data-page="estoque">
+       <i data-lucide="package" style="width:18px;height:18px"></i><span>Estoque</span>
+      </div>
+      <div class="nav-item" data-page="notas">
+       <i data-lucide="file-text" style="width:18px;height:18px"></i><span>Notas Fiscais</span>
+      </div>
+      <div class="nav-item" data-page="documentos">
+       <i data-lucide="folder" style="width:18px;height:18px"></i><span>Documentos</span>
+      </div>
+      <div class="nav-item" data-page="relatorios">
+       <i data-lucide="bar-chart-2" style="width:18px;height:18px"></i><span>Relatórios</span>
+      </div>
+      <div class="nav-item" data-page="config">
+       <i data-lucide="sliders" style="width:18px;height:18px"></i><span>Configurações</span>
+      </div>
+     </nav>
+     <div class="p-4 border-t border-slate-100">
+      <div class="nav-item" onclick="logout()">
+       <i data-lucide="log-out" style="width:18px;height:18px"></i><span>Sair</span>
+      </div>
+     </div>
+    </aside>
+    <div class="flex-1 flex flex-col min-w-0">
+     <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-4 sticky top-0 z-30"><button class="lg:hidden" onclick="toggleSidebar()"><i data-lucide="menu" style="width:22px;height:22px"></i></button>
+      <div class="flex-1 max-w-md">
+       <div class="relative">
+        <i data-lucide="search" style="width:16px;height:16px;position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8"></i><input id="global-search" type="text" placeholder="Pesquisar..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+       </div>
+      </div>
+      <div class="flex items-center gap-2 ml-auto pl-3 border-l border-slate-200">
+       <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold">
+        RM
+       </div><span class="text-sm font-medium text-slate-700 hidden sm:block">Ricardo M.</span>
+      </div>
+     </header>
+     <main class="flex-1 p-6 overflow-y-auto"><!-- DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+       <div class="mb-6">
+        <h1 data-template-id="dash-title" class="canva-text text-2xl font-bold text-slate-900"></h1>
+        <p data-template-id="dash-subtitle" class="canva-text text-slate-500 mt-1"></p>
+       </div>
+       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="kpi-card">
+         <div class="flex items-center justify-between mb-3">
+          <span class="text-sm text-slate-500">Faturamento</span>
+          <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+           <i data-lucide="trending-up" style="width:16px;height:16px;color:#3b82f6"></i>
+          </div>
+         </div>
+         <p class="text-2xl font-bold text-slate-900">R$ 100.364,80</p>
+        </div>
+        <div class="kpi-card">
+         <div class="flex items-center justify-between mb-3">
+          <span class="text-sm text-slate-500">Valor em Estoque</span>
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+           <i data-lucide="package" style="width:16px;height:16px;color:#10b981"></i>
+          </div>
+         </div>
+         <p class="text-2xl font-bold text-slate-900">R$ 507.647,85</p>
+        </div>
+        <div class="kpi-card">
+         <div class="flex items-center justify-between mb-3">
+          <span class="text-sm text-slate-500">Itens em Estoque</span>
+          <div class="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+           <i data-lucide="layers" style="width:16px;height:16px;color:#8b5cf6"></i>
+          </div>
+         </div>
+         <p class="text-2xl font-bold text-slate-900">4.190</p>
+         <p class="text-xs text-slate-500 mt-1">em 30 produtos</p>
+        </div>
+        <div class="kpi-card">
+         <div class="flex items-center justify-between mb-3">
+          <span class="text-sm text-slate-500">Docs Pendentes</span>
+          <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+           <i data-lucide="alert-circle" style="width:16px;height:16px;color:#f59e0b"></i>
+          </div>
+         </div>
+         <p class="text-2xl font-bold text-slate-900">10</p>
+        </div>
+       </div>
+       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+         <h3 class="font-semibold text-slate-800 mb-4">Faturamento Mensal (2026)</h3>
+         <canvas id="chart-revenue" height="200"></canvas>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+         <h3 class="font-semibold text-slate-800 mb-4">Vendas por Vendedor</h3>
+         <canvas id="chart-sellers" height="200"></canvas>
+        </div>
+       </div><!-- Top 5 notas recentes -->
+       <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <div class="flex items-center justify-between mb-4">
+         <h3 class="font-semibold text-slate-800">Últimas Notas Fiscais</h3><button class="text-sm text-blue-600 hover:underline" onclick="navigateTo('notas')">Ver todas</button>
+        </div>
+        <div class="table-wrap">
+         <table>
+          <thead>
+           <tr>
+            <th>Nota</th>
+            <th>Data</th>
+            <th>Vendedor</th>
+            <th>Valor</th>
+           </tr>
+          </thead>
+          <tbody id="dash-recent-nf"></tbody>
+         </table>
+        </div>
+       </div>
+      </section><!-- ESTOQUE -->
+      <section id="page-estoque" class="page">
+       <div class="mb-6">
+        <h1 data-template-id="estoque-title" class="canva-text text-2xl font-bold text-slate-900"></h1>
+        <p data-template-id="estoque-subtitle" class="canva-text text-slate-500 mt-1"></p>
+       </div>
+       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Valor Total</p>
+         <p class="text-xl font-bold text-slate-900 mt-1">R$ 507.647,85</p>
+        </div>
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Qtd. Produtos</p>
+         <p class="text-xl font-bold text-slate-900 mt-1">30</p>
+        </div>
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Total de Itens</p>
+         <p class="text-xl font-bold text-slate-900 mt-1">4.190</p>
+        </div>
+       </div>
+       <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <div class="mb-4">
+         <input id="estoque-search" type="text" placeholder="Buscar por nome ou código..." class="w-full max-w-md px-4 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="table-wrap">
+         <table>
+          <thead>
+           <tr>
+            <th>Código</th>
+            <th>Produto</th>
+            <th>Qtd</th>
+            <th>Preço Un.</th>
+            <th>Valor Total</th>
+           </tr>
+          </thead>
+          <tbody id="estoque-tbody"></tbody>
+         </table>
+        </div>
+       </div>
+      </section><!-- NOTAS FISCAIS -->
+      <section id="page-notas" class="page">
+       <div class="mb-6">
+        <h1 data-template-id="notas-title" class="canva-text text-2xl font-bold text-slate-900"></h1>
+        <p class="text-slate-500 mt-1">Todas as notas fiscais emitidas.</p>
+       </div>
+       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Total de Notas</p>
+         <p class="text-xl font-bold text-slate-900 mt-1">210</p>
+        </div>
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Valor Total</p>
+         <p class="text-xl font-bold text-slate-900 mt-1">R$ 100.364,80</p>
+        </div>
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Vendedores</p>
+         <p class="text-xl font-bold text-slate-900 mt-1">7</p>
+        </div>
+       </div>
+       <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <div class="flex flex-wrap gap-3 mb-4"><input id="nf-search" type="text" placeholder="Buscar nota, vendedor..." class="flex-1 min-w-[200px] px-4 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"> <select id="nf-vendor-filter" class="px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="">Todos vendedores</option></select>
+        </div>
+        <div class="table-wrap">
+         <table>
+          <thead>
+           <tr>
+            <th>Nota</th>
+            <th>Emissão</th>
+            <th>Vendedor</th>
+            <th>Valor</th>
+           </tr>
+          </thead>
+          <tbody id="nf-tbody"></tbody>
+         </table>
+        </div>
+        <div id="nf-pagination" class="flex items-center justify-between mt-4 text-sm text-slate-600"></div>
+       </div>
+      </section><!-- DOCUMENTOS -->
+      <section id="page-documentos" class="page">
+       <div class="mb-6">
+        <h1 data-template-id="docs-title" class="canva-text text-2xl font-bold text-slate-900"></h1>
+        <p class="text-slate-500 mt-1">Central de documentos da empresa.</p>
+       </div>
+       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Total</p>
+         <p class="text-xl font-bold text-slate-900 mt-1">15</p>
+        </div>
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Concluídos</p>
+         <p class="text-xl font-bold text-emerald-600 mt-1">5</p>
+        </div>
+        <div class="kpi-card">
+         <p class="text-sm text-slate-500">Pendentes</p>
+         <p class="text-xl font-bold text-amber-600 mt-1">10</p>
+        </div>
+       </div>
+       <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <div class="table-wrap">
+         <table>
+          <thead>
+           <tr>
+            <th>ID</th>
+            <th>Documento</th>
+            <th>Tipo</th>
+            <th>Emissão</th>
+            <th>Status</th>
+           </tr>
+          </thead>
+          <tbody id="docs-tbody"></tbody>
+         </table>
+        </div>
+       </div>
+      </section><!-- RELATÓRIOS -->
+      <section id="page-relatorios" class="page">
+       <div class="mb-6">
+        <h1 data-template-id="rel-title" class="canva-text text-2xl font-bold text-slate-900"></h1>
+        <p class="text-slate-500 mt-1">Gere e exporte relatórios detalhados.</p>
+       </div>
+       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
+         <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mb-3">
+          <i data-lucide="file-text" style="width:20px;height:20px;color:#3b82f6"></i>
+         </div>
+         <h4 class="font-semibold text-slate-800">Relatório de Notas Fiscais</h4>
+         <p class="text-sm text-slate-500 mt-1">Análise completa de NFs por período e vendedor.</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
+         <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-3">
+          <i data-lucide="package" style="width:20px;height:20px;color:#10b981"></i>
+         </div>
+         <h4 class="font-semibold text-slate-800">Relatório de Estoque</h4>
+         <p class="text-sm text-slate-500 mt-1">Posição de estoque e valores.</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
+         <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
+          <i data-lucide="folder" style="width:20px;height:20px;color:#f59e0b"></i>
+         </div>
+         <h4 class="font-semibold text-slate-800">Relatório de Documentos</h4>
+         <p class="text-sm text-slate-500 mt-1">Status e vencimento de documentos.</p>
+        </div>
+       </div>
+      </section><!-- CONFIGURAÇÕES -->
+      <section id="page-config" class="page">
+       <div class="mb-6">
+        <h1 data-template-id="config-title" class="canva-text text-2xl font-bold text-slate-900"></h1>
+       </div>
+       <div class="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+        <div>
+         <label class="block text-sm font-medium text-slate-700 mb-1">Nome da Empresa</label><input type="text" value="AutoParts Distribuidora LTDA" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm">
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-slate-700 mb-1">CNPJ</label><input type="text" value="12.345.678/0001-90" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm">
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-slate-700 mb-1">Endereço</label><input type="text" value="Av. Industrial, 1500 - Aracaju/SE" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm">
+        </div><button class="btn-primary">Salvar alterações</button>
+       </div>
+      </section>
+     </main>
+    </div>
+   </div>
+  </div>
+  <script src="/_sdk/d97541380e824b1a.editing_sdk.js" integrity="sha512-iBVkuiyctyjmaqUwrsoYSc/nxwymdEKZMKPeBCNj6uN/7hFPTiMVeunYJjJVnUh1GNECKEyCerl7IHtlqhzSYQ=="></script>
+  <script>
+// ===== DATA FROM SPREADSHEET =====
+const VENDEDORES = [
+  {nome:'Almir', total:14795.28, meses:[4470.39,2598.68,1524.77,1746.79,2725.15,865.76,863.74]},
+  {nome:'Bruno', total:13314.82, meses:[1773.98,1518.91,3734.10,1398.50,2842.63,1370.79,675.91]},
+  {nome:'Jefersson', total:11672.77, meses:[1981.03,2049.94,1432.37,1429.26,1704.50,2088.35,987.32]},
+  {nome:'João', total:17092.74, meses:[1575.41,1357.24,2198.83,2840.26,4534.92,3777.99,808.09]},
+  {nome:'Lucas', total:16295.52, meses:[600.39,2945.53,1943.87,3052.78,2779.28,4376.27,597.40]},
+  {nome:'Paulo', total:11093.69, meses:[3835.59,488.62,2189.96,574.44,2234.72,1077.50,692.86]},
+  {nome:'Tiago', total:16099.98, meses:[1324.33,1815.18,868.64,3603.62,3760.04,2604.17,2124.00]}
+];
+
+const NOTAS_FISCAIS = [
+  {nota:'NF-1056',data:'01/01/26',vendedor:'Lucas',valor:357.95},
+  {nota:'NF-1188',data:'01/02/26',vendedor:'Almir',valor:867.42},
+  {nota:'NF-1010',data:'01/02/26',vendedor:'Almir',valor:815.53},
+  {nota:'NF-1046',data:'01/03/26',vendedor:'Jefersson',valor:734.69},
+  {nota:'NF-1057',data:'01/05/26',vendedor:'Paulo',valor:932.64},
+  {nota:'NF-1073',data:'01/09/26',vendedor:'Almir',valor:363.91},
+  {nota:'NF-1005',data:'01/09/26',vendedor:'Paulo',valor:139.01},
+  {nota:'NF-1137',data:'01/11/26',vendedor:'Tiago',valor:249.57},
+  {nota:'NF-1107',data:'01/11/26',vendedor:'Lucas',valor:127.88},
+  {nota:'NF-1041',data:'01/13/26',vendedor:'Almir',valor:154.17},
+  {nota:'NF-1081',data:'01/14/26',vendedor:'Jefersson',valor:670.78},
+  {nota:'NF-1127',data:'01/14/26',vendedor:'Paulo',valor:652.57},
+  {nota:'NF-1031',data:'01/15/26',vendedor:'Bruno',valor:830.71},
+  {nota:'NF-1093',data:'01/16/26',vendedor:'Bruno',valor:410.02},
+  {nota:'NF-1020',data:'01/18/26',vendedor:'Paulo',valor:678.20},
+  {nota:'NF-1152',data:'01/18/26',vendedor:'Almir',valor:315.17},
+  {nota:'NF-1104',data:'01/18/26',vendedor:'Lucas',valor:114.56},
+  {nota:'NF-1113',data:'01/19/26',vendedor:'Paulo',valor:485.37},
+  {nota:'NF-1184',data:'01/19/26',vendedor:'João',valor:443.72},
+  {nota:'NF-1087',data:'01/20/26',vendedor:'João',valor:817.62},
+  {nota:'NF-1090',data:'01/24/26',vendedor:'Almir',valor:856.26},
+  {nota:'NF-1014',data:'01/25/26',vendedor:'Tiago',valor:855.12},
+  {nota:'NF-1022',data:'01/26/26',vendedor:'João',valor:314.07},
+  {nota:'NF-1121',data:'01/27/26',vendedor:'Bruno',valor:301.24},
+  {nota:'NF-1052',data:'01/28/26',vendedor:'Almir',valor:644.04},
+  {nota:'NF-1122',data:'01/28/26',vendedor:'Jefersson',valor:575.56},
+  {nota:'NF-1189',data:'01/28/26',vendedor:'Almir',valor:453.89},
+  {nota:'NF-1084',data:'01/28/26',vendedor:'Bruno',valor:232.01},
+  {nota:'NF-1132',data:'01/29/26',vendedor:'Paulo',valor:947.80},
+  {nota:'NF-1155',data:'01/30/26',vendedor:'Tiago',valor:219.64},
+  {nota:'NF-1129',data:'02/03/26',vendedor:'Jefersson',valor:980.81},
+  {nota:'NF-1193',data:'02/04/26',vendedor:'Almir',valor:491.41},
+  {nota:'NF-1040',data:'02/05/26',vendedor:'Lucas',valor:518.84},
+  {nota:'NF-1204',data:'02/08/26',vendedor:'Bruno',valor:413.88},
+  {nota:'NF-1012',data:'02/09/26',vendedor:'Bruno',valor:959.35},
+  {nota:'NF-1054',data:'02/09/26',vendedor:'Tiago',valor:774.39},
+  {nota:'NF-1205',data:'02/09/26',vendedor:'Jefersson',valor:253.26},
+  {nota:'NF-1146',data:'02/10/26',vendedor:'Almir',valor:716.21},
+  {nota:'NF-1130',data:'02/11/26',vendedor:'Jefersson',valor:469.74},
+  {nota:'NF-1028',data:'02/11/26',vendedor:'João',valor:410.48},
+  {nota:'NF-1063',data:'02/12/26',vendedor:'Tiago',valor:551.29},
+  {nota:'NF-1091',data:'02/12/26',vendedor:'João',valor:511.36},
+  {nota:'NF-1027',data:'02/13/26',vendedor:'Lucas',valor:742.67},
+  {nota:'NF-1190',data:'02/15/26',vendedor:'Almir',valor:960.07},
+  {nota:'NF-1142',data:'02/15/26',vendedor:'João',valor:73.55},
+  {nota:'NF-1086',data:'02/16/26',vendedor:'Tiago',valor:489.50},
+  {nota:'NF-1151',data:'02/19/26',vendedor:'João',valor:361.85},
+  {nota:'NF-1182',data:'02/20/26',vendedor:'Bruno',valor:73.20},
+  {nota:'NF-1066',data:'02/21/26',vendedor:'Jefersson',valor:346.13},
+  {nota:'NF-1033',data:'02/24/26',vendedor:'Lucas',valor:882.55},
+  {nota:'NF-1177',data:'02/24/26',vendedor:'Lucas',valor:499.53},
+  {nota:'NF-1092',data:'02/24/26',vendedor:'Almir',valor:430.99},
+  {nota:'NF-1115',data:'02/24/26',vendedor:'Lucas',valor:301.94},
+  {nota:'NF-1071',data:'02/26/26',vendedor:'Paulo',valor:117.44},
+  {nota:'NF-1069',data:'02/27/26',vendedor:'Paulo',valor:371.18},
+  {nota:'NF-1150',data:'02/28/26',vendedor:'Bruno',valor:72.48},
+  {nota:'NF-1006',data:'03/01/26',vendedor:'Lucas',valor:621.92},
+  {nota:'NF-1181',data:'03/02/26',vendedor:'Jefersson',valor:344.90},
+  {nota:'NF-1141',data:'03/02/26',vendedor:'Almir',valor:204.38},
+  {nota:'NF-1105',data:'03/02/26',vendedor:'João',valor:163.89},
+  {nota:'NF-1187',data:'03/04/26',vendedor:'Bruno',valor:673.26},
+  {nota:'NF-1183',data:'03/04/26',vendedor:'João',valor:630.71},
+  {nota:'NF-1077',data:'03/04/26',vendedor:'Almir',valor:499.32},
+  {nota:'NF-1199',data:'03/05/26',vendedor:'Almir',valor:655.78},
+  {nota:'NF-1192',data:'03/05/26',vendedor:'Almir',valor:165.29},
+  {nota:'NF-1138',data:'03/05/26',vendedor:'Jefersson',valor:147.65},
+  {nota:'NF-1036',data:'03/09/26',vendedor:'Bruno',valor:284.30},
+  {nota:'NF-1156',data:'03/09/26',vendedor:'Paulo',valor:152.98},
+  {nota:'NF-1025',data:'03/10/26',vendedor:'Jefersson',valor:939.82},
+  {nota:'NF-1123',data:'03/11/26',vendedor:'Tiago',valor:624.59},
+  {nota:'NF-1002',data:'03/12/26',vendedor:'Bruno',valor:262.05},
+  {nota:'NF-1201',data:'03/12/26',vendedor:'João',valor:123.61},
+  {nota:'NF-1128',data:'03/12/26',vendedor:'Paulo',valor:53.37},
+  {nota:'NF-1179',data:'03/14/26',vendedor:'Lucas',valor:680.66},
+  {nota:'NF-1174',data:'03/15/26',vendedor:'Bruno',valor:458.39},
+  {nota:'NF-1202',data:'03/15/26',vendedor:'Bruno',valor:308.13},
+  {nota:'NF-1021',data:'03/16/26',vendedor:'Paulo',valor:862.55},
+  {nota:'NF-1098',data:'03/17/26',vendedor:'Bruno',valor:970.27},
+  {nota:'NF-1169',data:'03/17/26',vendedor:'Lucas',valor:170.92},
+  {nota:'NF-1112',data:'03/18/26',vendedor:'João',valor:350.37},
+  {nota:'NF-1167',data:'03/18/26',vendedor:'Lucas',valor:343.82},
+  {nota:'NF-1058',data:'03/20/26',vendedor:'Bruno',valor:105.03},
+  {nota:'NF-1034',data:'03/22/26',vendedor:'Bruno',valor:672.67},
+  {nota:'NF-1158',data:'03/22/26',vendedor:'João',valor:625.90},
+  {nota:'NF-1032',data:'03/22/26',vendedor:'João',valor:304.35},
+  {nota:'NF-1109',data:'03/22/26',vendedor:'Tiago',valor:244.05},
+  {nota:'NF-1100',data:'03/22/26',vendedor:'Paulo',valor:97.64},
+  {nota:'NF-1203',data:'03/23/26',vendedor:'Lucas',valor:126.55},
+  {nota:'NF-1013',data:'03/28/26',vendedor:'Paulo',valor:138.11},
+  {nota:'NF-1116',data:'03/31/26',vendedor:'Paulo',valor:885.31},
+  {nota:'NF-1019',data:'04/03/26',vendedor:'Lucas',valor:232.67},
+  {nota:'NF-1136',data:'04/04/26',vendedor:'Almir',valor:973.59},
+  {nota:'NF-1164',data:'04/04/26',vendedor:'João',valor:116.48},
+  {nota:'NF-1134',data:'04/05/26',vendedor:'Lucas',valor:574.90},
+  {nota:'NF-1024',data:'04/05/26',vendedor:'Tiago',valor:249.03},
+  {nota:'NF-1117',data:'04/05/26',vendedor:'Tiago',valor:199.86},
+  {nota:'NF-1017',data:'04/07/26',vendedor:'Paulo',valor:574.44},
+  {nota:'NF-1044',data:'04/08/26',vendedor:'Lucas',valor:996.32},
+  {nota:'NF-1147',data:'04/08/26',vendedor:'Almir',valor:86.79},
+  {nota:'NF-1094',data:'04/10/26',vendedor:'Tiago',valor:930.19},
+  {nota:'NF-1111',data:'04/12/26',vendedor:'Bruno',valor:688.11},
+  {nota:'NF-1035',data:'04/12/26',vendedor:'Jefersson',valor:485.91},
+  {nota:'NF-1039',data:'04/13/26',vendedor:'Tiago',valor:258.35},
+  {nota:'NF-1168',data:'04/15/26',vendedor:'Tiago',valor:432.28},
+  {nota:'NF-1078',data:'04/15/26',vendedor:'Bruno',valor:139.61},
+  {nota:'NF-1080',data:'04/16/26',vendedor:'João',valor:870.64},
+  {nota:'NF-1144',data:'04/16/26',vendedor:'Almir',valor:686.41},
+  {nota:'NF-1206',data:'04/17/26',vendedor:'João',valor:364.34},
+  {nota:'NF-1170',data:'04/18/26',vendedor:'Jefersson',valor:943.35},
+  {nota:'NF-1208',data:'04/18/26',vendedor:'João',valor:909.60},
+  {nota:'NF-1043',data:'04/19/26',vendedor:'Lucas',valor:110.35},
+  {nota:'NF-1135',data:'04/21/26',vendedor:'Bruno',valor:89.74},
+  {nota:'NF-1157',data:'04/22/26',vendedor:'Tiago',valor:742.12},
+  {nota:'NF-1049',data:'04/22/26',vendedor:'Bruno',valor:481.04},
+  {nota:'NF-1195',data:'04/24/26',vendedor:'Lucas',valor:824.26},
+  {nota:'NF-1009',data:'04/25/26',vendedor:'Lucas',valor:314.28},
+  {nota:'NF-1095',data:'04/27/26',vendedor:'Tiago',valor:451.86},
+  {nota:'NF-1149',data:'04/28/26',vendedor:'Tiago',valor:339.93},
+  {nota:'NF-1176',data:'04/30/26',vendedor:'João',valor:470.05},
+  {nota:'NF-1207',data:'04/30/26',vendedor:'João',valor:109.15},
+  {nota:'NF-1148',data:'05/01/26',vendedor:'Bruno',valor:239.59},
+  {nota:'NF-1198',data:'05/02/26',vendedor:'João',valor:296.23},
+  {nota:'NF-1101',data:'05/03/26',vendedor:'Lucas',valor:923.42},
+  {nota:'NF-1075',data:'05/05/26',vendedor:'Bruno',valor:562.27},
+  {nota:'NF-1060',data:'05/05/26',vendedor:'Almir',valor:115.75},
+  {nota:'NF-1126',data:'05/06/26',vendedor:'Tiago',valor:910.07},
+  {nota:'NF-1051',data:'05/09/26',vendedor:'Almir',valor:219.72},
+  {nota:'NF-1196',data:'05/10/26',vendedor:'João',valor:839.04},
+  {nota:'NF-1103',data:'05/11/26',vendedor:'Paulo',valor:858.78},
+  {nota:'NF-1159',data:'05/11/26',vendedor:'Paulo',valor:415.94},
+  {nota:'NF-1074',data:'05/12/26',vendedor:'Bruno',valor:314.55},
+  {nota:'NF-1068',data:'05/13/26',vendedor:'João',valor:164.95},
+  {nota:'NF-1191',data:'05/13/26',vendedor:'João',valor:97.71},
+  {nota:'NF-1200',data:'05/14/26',vendedor:'João',valor:645.41},
+  {nota:'NF-1045',data:'05/16/26',vendedor:'Tiago',valor:972.52},
+  {nota:'NF-1194',data:'05/16/26',vendedor:'Lucas',valor:615.68},
+  {nota:'NF-1102',data:'05/16/26',vendedor:'Bruno',valor:104.04},
+  {nota:'NF-1061',data:'05/17/26',vendedor:'Almir',valor:169.47},
+  {nota:'NF-1154',data:'05/18/26',vendedor:'Tiago',valor:942.28},
+  {nota:'NF-1162',data:'05/18/26',vendedor:'Jefersson',valor:733.46},
+  {nota:'NF-1085',data:'05/18/26',vendedor:'João',valor:183.17},
+  {nota:'NF-1055',data:'05/19/26',vendedor:'Almir',valor:926.31},
+  {nota:'NF-1065',data:'05/19/26',vendedor:'Almir',valor:743.43},
+  {nota:'NF-1089',data:'05/19/26',vendedor:'Almir',valor:64.02},
+  {nota:'NF-1004',data:'05/20/26',vendedor:'Paulo',valor:610.97},
+  {nota:'NF-1118',data:'05/20/26',vendedor:'Jefersson',valor:337.39},
+  {nota:'NF-1197',data:'05/21/26',vendedor:'João',valor:902.35},
+  {nota:'NF-1088',data:'05/21/26',vendedor:'Paulo',valor:98.06},
+  {nota:'NF-1173',data:'05/21/26',vendedor:'Almir',valor:50.39},
+  {nota:'NF-1120',data:'05/22/26',vendedor:'Tiago',valor:935.17},
+  {nota:'NF-1007',data:'05/24/26',vendedor:'Bruno',valor:730.22},
+  {nota:'NF-1139',data:'05/24/26',vendedor:'Almir',valor:436.06},
+  {nota:'NF-1037',data:'05/24/26',vendedor:'Lucas',valor:299.60},
+  {nota:'NF-1114',data:'05/25/26',vendedor:'Paulo',valor:119.60},
+  {nota:'NF-1106',data:'05/26/26',vendedor:'Bruno',valor:599.97},
+  {nota:'NF-1059',data:'05/26/26',vendedor:'Paulo',valor:131.37},
+  {nota:'NF-1210',data:'05/28/26',vendedor:'João',valor:503.13},
+  {nota:'NF-1160',data:'05/28/26',vendedor:'Bruno',valor:291.99},
+  {nota:'NF-1175',data:'05/29/26',vendedor:'Lucas',valor:671.97},
+  {nota:'NF-1099',data:'05/29/26',vendedor:'Jefersson',valor:565.09},
+  {nota:'NF-1038',data:'05/30/26',vendedor:'João',valor:902.93},
+  {nota:'NF-1209',data:'05/30/26',vendedor:'Jefersson',valor:68.56},
+  {nota:'NF-1070',data:'05/31/26',vendedor:'Lucas',valor:268.61},
+  {nota:'NF-1015',data:'06/04/26',vendedor:'Tiago',valor:816.77},
+  {nota:'NF-1064',data:'06/05/26',vendedor:'João',valor:966.14},
+  {nota:'NF-1172',data:'06/07/26',vendedor:'Lucas',valor:335.90},
+  {nota:'NF-1140',data:'06/08/26',vendedor:'Jefersson',valor:196.83},
+  {nota:'NF-1180',data:'06/08/26',vendedor:'Tiago',valor:138.72},
+  {nota:'NF-1018',data:'06/10/26',vendedor:'Lucas',valor:891.18},
+  {nota:'NF-1042',data:'06/10/26',vendedor:'Bruno',valor:802.48},
+  {nota:'NF-1072',data:'06/11/26',vendedor:'Paulo',valor:267.49},
+  {nota:'NF-1185',data:'06/11/26',vendedor:'Lucas',valor:234.71},
+  {nota:'NF-1023',data:'06/12/26',vendedor:'Almir',valor:396.59},
+  {nota:'NF-1125',data:'06/12/26',vendedor:'Almir',valor:300.78},
+  {nota:'NF-1053',data:'06/13/26',vendedor:'Lucas',valor:628.52},
+  {nota:'NF-1029',data:'06/13/26',vendedor:'Jefersson',valor:579.10},
+  {nota:'NF-1001',data:'06/13/26',vendedor:'Paulo',valor:73.76},
+  {nota:'NF-1153',data:'06/14/26',vendedor:'Lucas',valor:429.69},
+  {nota:'NF-1048',data:'06/14/26',vendedor:'Tiago',valor:155.97},
+  {nota:'NF-1026',data:'06/15/26',vendedor:'Paulo',valor:628.67},
+  {nota:'NF-1082',data:'06/15/26',vendedor:'Paulo',valor:107.58},
+  {nota:'NF-1119',data:'06/17/26',vendedor:'Lucas',valor:57.43},
+  {nota:'NF-1062',data:'06/18/26',vendedor:'João',valor:949.51},
+  {nota:'NF-1108',data:'06/18/26',vendedor:'Lucas',valor:586.97},
+  {nota:'NF-1079',data:'06/18/26',vendedor:'João',valor:386.58},
+  {nota:'NF-1166',data:'06/19/26',vendedor:'Almir',valor:168.39},
+  {nota:'NF-1165',data:'06/20/26',vendedor:'Tiago',valor:642.00},
+  {nota:'NF-1067',data:'06/21/26',vendedor:'Jefersson',valor:404.75},
+  {nota:'NF-1171',data:'06/23/26',vendedor:'Jefersson',valor:907.67},
+  {nota:'NF-1047',data:'06/24/26',vendedor:'Lucas',valor:763.33},
+  {nota:'NF-1030',data:'06/25/26',vendedor:'Tiago',valor:850.71},
+  {nota:'NF-1133',data:'06/26/26',vendedor:'Bruno',valor:568.31},
+  {nota:'NF-1186',data:'06/28/26',vendedor:'João',valor:519.66},
+  {nota:'NF-1011',data:'06/28/26',vendedor:'João',valor:373.24},
+  {nota:'NF-1008',data:'06/29/26',vendedor:'Lucas',valor:448.54},
+  {nota:'NF-1131',data:'06/30/26',vendedor:'João',valor:582.86},
+  {nota:'NF-1161',data:'07/01/26',vendedor:'João',valor:51.61},
+  {nota:'NF-1110',data:'07/03/26',vendedor:'Tiago',valor:276.75},
+  {nota:'NF-1124',data:'07/03/26',vendedor:'Tiago',valor:243.42},
+  {nota:'NF-1097',data:'07/03/26',vendedor:'João',valor:197.06},
+  {nota:'NF-1050',data:'07/04/26',vendedor:'Jefersson',valor:300.22},
+  {nota:'NF-1076',data:'07/05/26',vendedor:'Lucas',valor:597.40},
+  {nota:'NF-1083',data:'07/06/26',vendedor:'Tiago',valor:810.56},
+  {nota:'NF-1016',data:'07/06/26',vendedor:'João',valor:559.42},
+  {nota:'NF-1096',data:'07/07/26',vendedor:'Almir',valor:577.98},
+  {nota:'NF-1143',data:'07/08/26',vendedor:'Tiago',valor:793.27},
+  {nota:'NF-1003',data:'07/08/26',vendedor:'Paulo',valor:692.86},
+  {nota:'NF-1178',data:'07/08/26',vendedor:'Bruno',valor:675.91},
+  {nota:'NF-1145',data:'07/08/26',vendedor:'Almir',valor:285.76},
+  {nota:'NF-1163',data:'07/09/26',vendedor:'Jefersson',valor:687.10}
+];
+
+const ESTOQUE = [
+  {cod:'P001',nome:'Rolamento de Esferas Blindado (DDU/2RS C3 High-Speed)',qtd:350,preco:44.96,total:15736.00},
+  {cod:'P002',nome:'Biela Forjada do Motor (Aço 4340 H-Beam)',qtd:180,preco:218.50,total:39330.00},
+  {cod:'P003',nome:'Virabrequim de Aço Forjado (Nitretado/Microfundido)',qtd:40,preco:826.34,total:33053.60},
+  {cod:'P004',nome:'Válvula de Admissão (Aço Inox com Haste Nitretada)',qtd:260,preco:33.90,total:8814.00},
+  {cod:'P005',nome:'Válvula de Escape (Liga Inconel para Alta Temperatura)',qtd:260,preco:37.55,total:9763.00},
+  {cod:'P006',nome:'Correia Dentada Sincronizadora (HNBR Reforçada com Kevlar)',qtd:120,preco:74.93,total:8991.60},
+  {cod:'P007',nome:'Correia de Acessórios Alternador (Poly-V Multi-Perfil)',qtd:90,preco:40.16,total:3614.40},
+  {cod:'P008',nome:'Jogo de Anéis de Segmento (Cromo-Níquel Alta Vedação)',qtd:60,preco:170.19,total:10211.40},
+  {cod:'P009',nome:'Bronzina de Biela (Tri-Metal Semi-Acabada - Par)',qtd:40,preco:64.23,total:2569.20},
+  {cod:'P010',nome:'Bronzina de Mancal (Tri-Metal Revestida - Par)',qtd:20,preco:94.26,total:1885.20},
+  {cod:'P011',nome:'Conjunto Diferencial Completo (Autoblocante LSD)',qtd:15,preco:2479.16,total:37187.40},
+  {cod:'P012',nome:'Eixo Cardan Bi-Partido (Com Cruzeta Selada)',qtd:25,preco:1150.00,total:28750.00},
+  {cod:'P013',nome:'Rolamento Roda Dianteira (Duplo Angular com ABS)',qtd:110,preco:164.55,total:18100.50},
+  {cod:'P014',nome:'Líquido de Arrefecimento Concentrado (OAT 1L)',qtd:300,preco:38.00,total:11400.00},
+  {cod:'P015',nome:'Vela de Ignição IridiumIX (0.6mm Alta Performance)',qtd:400,preco:60.79,total:24316.00},
+  {cod:'P016',nome:'Bobina de Ignição Individual (Pencil Coil HV)',qtd:80,preco:185.00,total:14800.00},
+  {cod:'P017',nome:'Amortecedor Dianteiro Pressurizado (Gás-Nitrogênio)',qtd:70,preco:320.00,total:22400.00},
+  {cod:'P018',nome:'Disco de Freio Ventilado (Perfurado/Ranhurado 300mm)',qtd:100,preco:209.45,total:20945.00},
+  {cod:'P019',nome:'Jogo de Pastilhas de Freio (Cerâmica Low Dust)',qtd:150,preco:145.00,total:21750.00},
+  {cod:'P020',nome:'Kit de Embreagem Completo (Platô, Disco e Atuador)',qtd:35,preco:680.00,total:23800.00},
+  {cod:'P021',nome:'Bomba d\'Água do Motor (Rotor Alumínio)',qtd:65,preco:194.60,total:12649.00},
+  {cod:'P022',nome:'Bomba de Combustível Alta Pressão (GDI 200 Bar)',qtd:30,preco:886.13,total:26583.90},
+  {cod:'P023',nome:'Sensor Posição Árvore de Cames (Hall Effect)',qtd:95,preco:106.72,total:10138.40},
+  {cod:'P024',nome:'Radiador de Água do Motor (Alumínio Brasado)',qtd:40,preco:447.38,total:17895.20},
+  {cod:'P025',nome:'Filtro de Óleo Lubrificante (Sintético Alta Eficiência)',qtd:500,preco:32.00,total:16000.00},
+  {cod:'P026',nome:'Filtro de Ar do Motor (Papel Plissado Tratado)',qtd:350,preco:48.00,total:16800.00},
+  {cod:'P027',nome:'Junta do Cabeçote (Multi-Layer Steel MLS)',qtd:85,preco:177.93,total:15124.05},
+  {cod:'P028',nome:'Pivô da Suspensão Dianteira (Esférico Selado)',qtd:140,preco:85.00,total:11900.00},
+  {cod:'P029',nome:'Terminal de Direção (Rótula Heavy Duty)',qtd:130,preco:78.00,total:10140.00},
+  {cod:'P030',nome:'Coxim do Motor Hidráulico (Absorvedor AT)',qtd:50,preco:260.00,total:13000.00}
+];
+
+const DOCUMENTOS = [
+  {id:'DOC-01',nome:'Contrato de Prestação de Serviços',tipo:'Contrato',data:'01/10/26',status:'Concluído'},
+  {id:'DOC-02',nome:'Relatório de Auditoria Interna',tipo:'Relatório',data:'03/15/26',status:'Pendente'},
+  {id:'DOC-03',nome:'Política de Segurança da Informação',tipo:'Diretriz',data:'05/20/26',status:'Concluído'},
+  {id:'DOC-04',nome:'Termo de Confidencialidade (NDA)',tipo:'Contrato',data:'06/01/26',status:'Pendente'},
+  {id:'DOC-05',nome:'Recibo de Contracheque - Filial',tipo:'Folha de Pagamento',data:'06/05/26',status:'Pendente'},
+  {id:'DOC-06',nome:'Relação Geral de Contratos Vigentes',tipo:'Relatório',data:'06/10/26',status:'Pendente'},
+  {id:'DOC-07',nome:'Espelho de Ajuste de Ponto Eletrônico',tipo:'RH / Pessoal',data:'06/15/26',status:'Pendente'},
+  {id:'DOC-08',nome:'Escala de Trabalho em Feriados',tipo:'RH / Pessoal',data:'06/20/26',status:'Pendente'},
+  {id:'DOC-09',nome:'Escala e Programação de Férias',tipo:'RH / Pessoal',data:'06/25/26',status:'Concluído'},
+  {id:'DOC-10',nome:'Comprovante de Recolhimento do FGTS',tipo:'Financeiro',data:'07/07/26',status:'Concluído'},
+  {id:'DOC-11',nome:'Atestados de Saúde Ocupacional (ASO)',tipo:'Segurança do Trabalho',data:'07/12/26',status:'Pendente'},
+  {id:'DOC-12',nome:'Termo de Entrega de EPIs',tipo:'Segurança do Trabalho',data:'07/18/26',status:'Concluído'},
+  {id:'DOC-13',nome:'Relatório de Horas Extraordinárias',tipo:'RH / Pessoal',data:'07/22/26',status:'Pendente'},
+  {id:'DOC-14',nome:'Aditivo Contratual de Fornecedores',tipo:'Contrato',data:'08/01/26',status:'Pendente'},
+  {id:'DOC-15',nome:'Guia de INSS e Encargos Sociais',tipo:'Financeiro',data:'08/05/26',status:'Pendente'}
+];
+
+// ===== NAVIGATION =====
+function navigateTo(page) {
+  document.querySelectorAll('#sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
+  const navItem = document.querySelector(`[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+  document.querySelectorAll('main .page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + page);
+  if (target) target.classList.add('active');
+  if (window.innerWidth < 1024) closeSidebar();
+}
+document.querySelectorAll('#sidebar-nav .nav-item').forEach(item => {
+  item.addEventListener('click', () => navigateTo(item.dataset.page));
+});
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+
+// ===== LOGIN =====
+document.getElementById('login-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  document.getElementById('login-page').classList.remove('active');
+  document.getElementById('admin-area').classList.add('active');
+  initAdmin();
+});
+function logout() { document.getElementById('admin-area').classList.remove('active'); document.getElementById('login-page').classList.add('active'); }
+
+// ===== INIT =====
+function initAdmin() {
+  renderDashRecent();
+  renderEstoque();
+  renderNotas();
+  renderDocs();
+  drawCharts();
+}
+
+function fmt(v) { return 'R$ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+// ===== DASHBOARD RECENT =====
+function renderDashRecent() {
+  const last5 = [...NOTAS_FISCAIS].reverse().slice(0, 8);
+  document.getElementById('dash-recent-nf').innerHTML = last5.map(n => `<tr><td>${n.nota}</td><td>${n.data}</td><td>${n.vendedor}</td><td>${fmt(n.valor)}</td></tr>`).join('');
+}
+
+// ===== ESTOQUE =====
+function renderEstoque(filter='') {
+  const f = filter.toLowerCase();
+  const filtered = ESTOQUE.filter(p => !f || p.nome.toLowerCase().includes(f) || p.cod.toLowerCase().includes(f));
+  document.getElementById('estoque-tbody').innerHTML = filtered.map(p => `<tr><td class="font-medium">${p.cod}</td><td>${p.nome}</td><td>${p.qtd}</td><td>${fmt(p.preco)}</td><td>${fmt(p.total)}</td></tr>`).join('');
+}
+document.getElementById('estoque-search').addEventListener('input', e => renderEstoque(e.target.value));
+
+// ===== NOTAS FISCAIS =====
+let nfPage = 0;
+const NF_PER_PAGE = 20;
+function getFilteredNF() {
+  const search = document.getElementById('nf-search').value.toLowerCase();
+  const vendor = document.getElementById('nf-vendor-filter').value;
+  return NOTAS_FISCAIS.filter(n => {
+    if (vendor && n.vendedor !== vendor) return false;
+    if (search && !n.nota.toLowerCase().includes(search) && !n.vendedor.toLowerCase().includes(search)) return false;
+    return true;
+  });
+}
+function renderNotas() {
+  // populate vendor filter
+  const sel = document.getElementById('nf-vendor-filter');
+  if (sel.options.length <= 1) {
+    VENDEDORES.forEach(v => { const o = document.createElement('option'); o.value = v.nome; o.textContent = v.nome; sel.appendChild(o); });
+  }
+  const filtered = getFilteredNF();
+  const totalPages = Math.ceil(filtered.length / NF_PER_PAGE);
+  if (nfPage >= totalPages) nfPage = Math.max(0, totalPages - 1);
+  const start = nfPage * NF_PER_PAGE;
+  const slice = filtered.slice(start, start + NF_PER_PAGE);
+  document.getElementById('nf-tbody').innerHTML = slice.map(n => `<tr><td class="font-medium">${n.nota}</td><td>${n.data}</td><td>${n.vendedor}</td><td>${fmt(n.valor)}</td></tr>`).join('');
+  document.getElementById('nf-pagination').innerHTML = `<span>${filtered.length} notas</span><div class="flex gap-2"><button class="px-3 py-1 border rounded text-xs ${nfPage===0?'opacity-40':''}" onclick="nfPrev()">Anterior</button><span class="px-2 py-1 text-xs">${nfPage+1}/${totalPages||1}</span><button class="px-3 py-1 border rounded text-xs ${nfPage>=totalPages-1?'opacity-40':''}" onclick="nfNext()">Próxima</button></div>`;
+}
+function nfPrev() { if(nfPage>0){nfPage--;renderNotas();} }
+function nfNext() { const t=Math.ceil(getFilteredNF().length/NF_PER_PAGE); if(nfPage<t-1){nfPage++;renderNotas();} }
+document.getElementById('nf-search').addEventListener('input', () => { nfPage=0; renderNotas(); });
+document.getElementById('nf-vendor-filter').addEventListener('change', () => { nfPage=0; renderNotas(); });
+
+// ===== DOCUMENTOS =====
+function renderDocs() {
+  document.getElementById('docs-tbody').innerHTML = DOCUMENTOS.map(d => {
+    const badge = d.status === 'Concluído' ? 'badge-green' : 'badge-yellow';
+    return `<tr><td class="font-medium">${d.id}</td><td>${d.nome}</td><td>${d.tipo}</td><td>${d.data}</td><td><span class="badge ${badge}">${d.status}</span></td></tr>`;
+  }).join('');
+}
+
+// ===== CHARTS =====
+function drawCharts() {
+  // Monthly revenue from vendedores data
+  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul'];
+  const monthlyTotals = months.map((_, i) => VENDEDORES.reduce((s, v) => s + v.meses[i], 0));
+
+  const c1 = document.getElementById('chart-revenue');
+  if (!c1) return;
+  const ctx1 = c1.getContext('2d');
+  const w = c1.width = c1.parentElement.clientWidth - 40;
+  const h = c1.height = 180;
+  const maxV = Math.max(...monthlyTotals);
+  ctx1.clearRect(0,0,w,h);
+  ctx1.strokeStyle = '#f1f5f9'; ctx1.lineWidth = 1;
+  for (let i = 0; i < 4; i++) { const y = 20 + i * 40; ctx1.beginPath(); ctx1.moveTo(40,y); ctx1.lineTo(w,y); ctx1.stroke(); }
+  ctx1.beginPath(); ctx1.strokeStyle = '#3b82f6'; ctx1.lineWidth = 2.5;
+  monthlyTotals.forEach((v, i) => {
+    const x = 40 + i * ((w-60) / (monthlyTotals.length-1));
+    const y = h - 20 - (v / maxV) * (h - 50);
+    i === 0 ? ctx1.moveTo(x,y) : ctx1.lineTo(x,y);
+  });
+  ctx1.stroke();
+  ctx1.lineTo(40 + (monthlyTotals.length-1) * ((w-60)/(monthlyTotals.length-1)), h-20);
+  ctx1.lineTo(40, h-20); ctx1.closePath();
+  ctx1.fillStyle = 'rgba(59,130,246,0.08)'; ctx1.fill();
+  ctx1.fillStyle = '#94a3b8'; ctx1.font = '11px DM Sans';
+  months.forEach((l, i) => { ctx1.fillText(l, 34 + i * ((w-60)/(months.length-1)), h-4); });
+
+  // Sellers chart
+  const c2 = document.getElementById('chart-sellers');
+  if (!c2) return;
+  const ctx2 = c2.getContext('2d');
+  c2.width = c2.parentElement.clientWidth - 40; c2.height = 200;
+  const maxS = Math.max(...VENDEDORES.map(v=>v.total));
+  const bw = 28; const gap = (c2.width - 20 - VENDEDORES.length * bw) / (VENDEDORES.length + 1);
+  VENDEDORES.forEach((s, i) => {
+    const x = 10 + gap + i * (bw + gap);
+    const bh = (s.total / maxS) * 150;
+    ctx2.fillStyle = '#3b82f6'; ctx2.beginPath(); ctx2.roundRect(x, 170 - bh, bw, bh, 4); ctx2.fill();
+    ctx2.fillStyle = '#64748b'; ctx2.font = '10px DM Sans';
+    ctx2.save(); ctx2.translate(x + bw/2, 185); ctx2.rotate(-0.3); ctx2.fillText(s.nome, -10, 0); ctx2.restore();
+  });
+}
+
+lucide.createIcons();
+</script>
+ </body>
+</html>
