@@ -1,0 +1,45 @@
+Como armazenar os dados dos cadastros?
+https://console.firebase.google.com/u/1/?pli=1
+
+Conectar o HTML ao Firebase e integrar o código
+
+<!-- Importar os scripts do Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // Aqui você cola o código que o Firebase te deu no passo 1
+  const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    authDomain: "seu-projeto.firebaseapp.com",
+    projectId: "seu-projeto",
+    // ... resto das configs
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // --- Função para Cadastrar Produto ---
+  async function cadastrarProduto(nome, preco) {
+    try {
+      const docRef = await addDoc(collection(db, "produtos"), {
+        nome: nome,
+        preco: preco,
+        data: new Date()
+      });
+      console.log("Produto salvo com ID: ", docRef.id);
+    } catch (e) {
+      console.error("Erro ao salvar: ", e);
+    }
+  }
+
+  // --- Função para Ler e montar o Dashboard ---
+  async function carregarDashboard() {
+    const querySnapshot = await getDocs(collection(db, "produtos"));
+    querySnapshot.forEach((doc) => {
+      const p = doc.data();
+      console.log(`${p.nome} - R$ ${p.preco}`);
+      // Aqui você injeta no seu HTML (ex: document.getElementById('lista').innerHTML += ...)
+    });
+  }
+</script>
