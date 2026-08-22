@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ERP • Gestão Comercial</title>
+<title>ERP • Gestão Comercial (local)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','ui-sans-serif','system-ui']}}}}</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   body{font-family:Inter,ui-sans-serif,system-ui}
@@ -26,14 +26,14 @@
 <div id="toast" class="fixed right-4 top-4 z-[100] hidden max-w-sm rounded-xl px-4 py-3 text-sm font-semibold shadow-xl"></div>
 
 <!-- LOGIN -->
-<section id="loginScreen" class="min-h-screen hidden items-center justify-center p-6">
+<section id="loginScreen" class="min-h-screen flex items-center justify-center p-6">
   <div class="w-full max-w-md card p-8 shadow-xl">
-    <div class="mb-8"><div class="mb-3 inline-flex rounded-2xl bg-blue-600 p-3 text-white"><i data-lucide="layout-dashboard"></i></div><h1 class="text-2xl font-extrabold">ERP Gestão Comercial</h1><p class="mt-1 text-sm text-slate-500">Acesse sua operação centralizada.</p></div>
+    <div class="mb-8"><div class="mb-3 inline-flex rounded-2xl bg-blue-600 p-3 text-white"><i data-lucide="layout-dashboard"></i></div><h1 class="text-2xl font-extrabold">ERP Gestão Comercial</h1><p class="mt-1 text-sm text-slate-500">Sistema local, baseado em senac_end.xlsx. Sem servidor, sem nuvem.</p></div>
     <form id="loginForm" class="space-y-4">
-      <div><label class="mb-1 block text-sm font-semibold">E-mail</label><input id="loginEmail" class="field" type="email" required></div>
-      <div><label class="mb-1 block text-sm font-semibold">Senha</label><input id="loginPassword" class="field" type="password" required></div>
+      <div><label class="mb-1 block text-sm font-semibold">Usuário</label><input id="loginUser" class="field" type="text" autocomplete="username" required></div>
+      <div><label class="mb-1 block text-sm font-semibold">Senha</label><input id="loginPassword" class="field" type="password" autocomplete="current-password" required></div>
       <button class="btn btn-primary w-full" type="submit"><i data-lucide="log-in" class="h-4 w-4"></i> Entrar</button>
-      <p id="loginHint" class="text-xs text-slate-500">Modo Firebase: configure as credenciais no arquivo. Em modo demonstração, use qualquer e-mail/senha.</p>
+      <p class="text-xs text-slate-500">Acesso local de demonstração: usuário <strong>admin</strong>, senha <strong>admin</strong>.</p>
     </form>
   </div>
 </section>
@@ -49,235 +49,916 @@
       <button class="nav-item" data-page="docs"><i data-lucide="file-text"></i> Controle Documental</button>
     </nav>
     <div class="absolute bottom-4 left-4 right-4 space-y-2">
-      <button id="seedBtn" class="btn btn-muted w-full"><i data-lucide="database-zap"></i> Popular Banco</button>
-      <button id="exportBtnSide" class="btn btn-primary w-full"><i data-lucide="file-spreadsheet"></i> Exportar XLSX</button>
+      <button id="restoreBtn" class="btn btn-muted w-full"><i data-lucide="rotate-ccw"></i> Restaurar dados iniciais</button>
+      <button id="reportBtnSide" class="btn btn-primary w-full"><i data-lucide="file-spreadsheet"></i> Gerar Fechamento</button>
     </div>
   </aside>
 
   <div class="lg:pl-64">
     <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90 lg:px-6">
-      <div class="flex items-center gap-3"><button id="menuBtn" class="btn btn-muted lg:hidden"><i data-lucide="menu"></i></button><div><div id="pageTitle" class="font-extrabold">Dashboard</div><div id="modeLabel" class="text-xs text-slate-500">Carregando...</div></div></div>
+      <div class="flex items-center gap-3"><button id="menuBtn" class="btn btn-muted lg:hidden"><i data-lucide="menu"></i></button><div><div id="pageTitle" class="font-extrabold">Dashboard</div><div id="modeLabel" class="text-xs text-slate-500">ERP local • sessão temporária, sem persistência</div></div></div>
       <div class="flex items-center gap-2"><button id="themeBtn" class="btn btn-muted" title="Alternar tema"><i data-lucide="moon"></i></button><div class="hidden rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold dark:bg-slate-800 sm:block" id="userName">Usuário</div><button id="logoutBtn" class="btn btn-muted" title="Sair"><i data-lucide="log-out"></i></button></div>
     </header>
     <main id="main" class="p-4 lg:p-6"></main>
   </div>
 </div>
 
-<!-- FIREBASE + APP -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, runTransaction, writeBatch, query, orderBy } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+<script>
+const INITIAL_DATA = {"products": [{"codigo": 1, "nome": "Rolamento de Esferas Blindado (DDU/2RS C3 High-Speed)", "quantidade": 350, "preco": 44.96}, {"codigo": 2, "nome": "Biela Forjada do Motor (Aço 4340 H-Beam)", "quantidade": 180, "preco": 218.5}, {"codigo": 3, "nome": "Virabrequim de Aço Forjado (Nitretado/Microfundido)", "quantidade": 40, "preco": 826.34}, {"codigo": 4, "nome": "Válvula de Admissão (Aço Inox com Haste Nitretada)", "quantidade": 260, "preco": 33.9}, {"codigo": 5, "nome": "Válvula de Escape (Liga Inconel para Alta Temperatura)", "quantidade": 260, "preco": 37.55}, {"codigo": 6, "nome": "Correia Dentada Sincronizadora (HNBR Reforçada com Kevlar)", "quantidade": 120, "preco": 74.93}, {"codigo": 7, "nome": "Correia de Acessórios Alternador (Poly-V Multi-Perfil)", "quantidade": 90, "preco": 40.16}, {"codigo": 8, "nome": "Jogo de Anéis de Segmento (Cromo-Níquel Alta Vedação)", "quantidade": 60, "preco": 170.19}, {"codigo": 9, "nome": "Bronzina de Biela (Tri-Metal Semi-Acabada - Par)", "quantidade": 40, "preco": 64.23}, {"codigo": 10, "nome": "Bronzina de Mancal (Tri-Metal Revestida - Par)", "quantidade": 20, "preco": 94.26}, {"codigo": 11, "nome": "Conjunto Diferencial Completo (Autoblocante LSD / Coroa e Pinhão Hipóide)", "quantidade": 15, "preco": 2479.16}, {"codigo": 12, "nome": "Eixo Cardan Bi-Partido (Com Cruzeta Selada e Suporte Central)", "quantidade": 25, "preco": 1150.0}, {"codigo": 13, "nome": "Rolamento Roda Dianteira (Duplo de Esferas Angular com ABS Integrado)", "quantidade": 110, "preco": 164.55}, {"codigo": 14, "nome": "Líquido de Arrefecimento Concentrado (Orgânico OAT / Motores Alumínio 1L)", "quantidade": 300, "preco": 38.0}, {"codigo": 15, "nome": "Vela de Ignição IridiumIX (Eletrodo Central 0.6mm / Alta Performance)", "quantidade": 400, "preco": 60.79}, {"codigo": 16, "nome": "Bobina de Ignição Individual (Tipo Copo / Pencil Coil High Voltage)", "quantidade": 80, "preco": 185.0}, {"codigo": 17, "nome": "Amortecedor Dianteiro Pressurizado (Gás-Nitrogênio / Dupla Ação)", "quantidade": 70, "preco": 320.0}, {"codigo": 18, "nome": "Disco de Freio Ventilado (Aço Carbono Perfurado / Ranhurado 300mm)", "quantidade": 100, "preco": 209.45}, {"codigo": 19, "nome": "Jogo de Pastilhas de Freio (Cerâmica Carbon-Metallic Low Dust)", "quantidade": 150, "preco": 145.0}, {"codigo": 20, "nome": "Kit de Embreagem Completo (Platô, Disco Orgânico Revestido e Atuador Hydro)", "quantidade": 35, "preco": 680.0}, {"codigo": 21, "nome": "Bomba d'Água do Motor (Rotor de Alumínio Inject-Molded)", "quantidade": 65, "preco": 194.6}, {"codigo": 22, "nome": "Bomba de Combustível de Alta Pressão (Injeção Direta GDI / 200 Bar)", "quantidade": 30, "preco": 886.13}, {"codigo": 23, "nome": "Sensor de Posição da Árvore de Cames (Hall Effect / Alta Precisão)", "quantidade": 95, "preco": 106.72}, {"codigo": 24, "nome": "Radiador de Água do Motor (Colmeia em Alumínio Brasado Brazing)", "quantidade": 40, "preco": 447.38}, {"codigo": 25, "nome": "Filtro de Óleo Lubrificante (Elemento Sintético de Alta Eficiência)", "quantidade": 500, "preco": 32.0}, {"codigo": 26, "nome": "Filtro de Ar do Motor (Elemento Filtrante de Papel Plissado Tratado)", "quantidade": 350, "preco": 48.0}, {"codigo": 27, "nome": "Junta do Cabeçote (Laminada Multi-Layer Steel - MLS)", "quantidade": 85, "preco": 177.93}, {"codigo": 28, "nome": "Pivô da Suspensão Dianteira (Esférico Selado com Coifa em Neoprene)", "quantidade": 140, "preco": 85.0}, {"codigo": 29, "nome": "Terminal de Direção (Rótula Pivotante / Tracionado Heavy Duty)", "quantidade": 130, "preco": 78.0}, {"codigo": 30, "nome": "Coxim do Motor Hidráulico (Com Absorvedor de Vibração AT)", "quantidade": 50, "preco": 260.0}], "sales": [{"nota": 1001, "emissao": "2026-06-13T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1002, "emissao": "2026-03-12T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1003, "emissao": "2026-07-08T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1004, "emissao": "2026-05-20T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1005, "emissao": "2026-01-09T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1006, "emissao": "2026-03-01T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1007, "emissao": "2026-05-24T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1008, "emissao": "2026-06-29T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1009, "emissao": "2026-04-25T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1010, "emissao": "2026-01-02T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1011, "emissao": "2026-06-28T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1012, "emissao": "2026-02-09T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1013, "emissao": "2026-03-28T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1014, "emissao": "2026-01-25T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1015, "emissao": "2026-06-04T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1016, "emissao": "2026-07-06T00:00:00", "vendedor": "João", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1017, "emissao": "2026-04-07T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1018, "emissao": "2026-06-10T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1019, "emissao": "2026-04-03T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1020, "emissao": "2026-01-18T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1021, "emissao": "2026-03-16T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1022, "emissao": "2026-01-26T00:00:00", "vendedor": "João", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1023, "emissao": "2026-06-12T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1024, "emissao": "2026-04-05T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1025, "emissao": "2026-03-10T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1026, "emissao": "2026-06-15T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1027, "emissao": "2026-02-13T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1028, "emissao": "2026-02-11T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1029, "emissao": "2026-06-13T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1030, "emissao": "2026-06-25T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1031, "emissao": "2026-01-15T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1032, "emissao": "2026-03-22T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1033, "emissao": "2026-02-24T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1034, "emissao": "2026-03-22T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1035, "emissao": "2026-04-12T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1036, "emissao": "2026-03-09T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1037, "emissao": "2026-05-24T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1038, "emissao": "2026-05-30T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1039, "emissao": "2026-04-13T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1040, "emissao": "2026-02-05T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1041, "emissao": "2026-01-13T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1042, "emissao": "2026-06-10T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1043, "emissao": "2026-04-19T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1044, "emissao": "2026-04-08T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1045, "emissao": "2026-05-16T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1046, "emissao": "2026-01-03T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1047, "emissao": "2026-06-24T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1048, "emissao": "2026-06-14T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1049, "emissao": "2026-04-22T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1050, "emissao": "2026-07-04T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1051, "emissao": "2026-05-09T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1052, "emissao": "2026-01-28T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1053, "emissao": "2026-06-13T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1054, "emissao": "2026-02-09T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1055, "emissao": "2026-05-19T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1056, "emissao": "2026-01-01T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1057, "emissao": "2026-01-05T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1058, "emissao": "2026-03-20T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1059, "emissao": "2026-05-26T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1060, "emissao": "2026-05-05T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1061, "emissao": "2026-05-17T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1062, "emissao": "2026-06-18T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1063, "emissao": "2026-02-12T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1064, "emissao": "2026-06-05T00:00:00", "vendedor": "João", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1065, "emissao": "2026-05-19T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1066, "emissao": "2026-02-21T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1067, "emissao": "2026-06-21T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1068, "emissao": "2026-05-13T00:00:00", "vendedor": "João", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1069, "emissao": "2026-02-27T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1070, "emissao": "2026-05-31T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1071, "emissao": "2026-02-26T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1072, "emissao": "2026-06-11T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1073, "emissao": "2026-01-09T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1074, "emissao": "2026-05-12T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1075, "emissao": "2026-05-05T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1076, "emissao": "2026-07-05T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1077, "emissao": "2026-03-04T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1078, "emissao": "2026-04-15T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1079, "emissao": "2026-06-18T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1080, "emissao": "2026-04-16T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1081, "emissao": "2026-01-14T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1082, "emissao": "2026-06-15T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1083, "emissao": "2026-07-06T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1084, "emissao": "2026-01-28T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1085, "emissao": "2026-05-18T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1086, "emissao": "2026-02-16T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1087, "emissao": "2026-01-20T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1088, "emissao": "2026-05-21T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1089, "emissao": "2026-05-19T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1090, "emissao": "2026-01-24T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1091, "emissao": "2026-02-12T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1092, "emissao": "2026-02-24T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1093, "emissao": "2026-01-16T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1094, "emissao": "2026-04-10T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1095, "emissao": "2026-04-27T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1096, "emissao": "2026-07-07T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1097, "emissao": "2026-07-03T00:00:00", "vendedor": "João", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1098, "emissao": "2026-03-17T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1099, "emissao": "2026-05-29T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1100, "emissao": "2026-03-22T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1101, "emissao": "2026-05-03T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1102, "emissao": "2026-05-16T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1103, "emissao": "2026-05-11T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1104, "emissao": "2026-01-18T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1105, "emissao": "2026-03-02T00:00:00", "vendedor": "João", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1106, "emissao": "2026-05-26T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1107, "emissao": "2026-01-11T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1108, "emissao": "2026-06-18T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1109, "emissao": "2026-03-22T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1110, "emissao": "2026-07-03T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1111, "emissao": "2026-04-12T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1112, "emissao": "2026-03-18T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1113, "emissao": "2026-01-19T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1114, "emissao": "2026-05-25T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1115, "emissao": "2026-02-24T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1116, "emissao": "2026-03-31T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1117, "emissao": "2026-04-05T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1118, "emissao": "2026-05-20T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1119, "emissao": "2026-06-17T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1120, "emissao": "2026-05-22T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1121, "emissao": "2026-01-27T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1122, "emissao": "2026-01-28T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1123, "emissao": "2026-03-11T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1124, "emissao": "2026-07-03T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1125, "emissao": "2026-06-12T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1126, "emissao": "2026-05-06T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1127, "emissao": "2026-01-14T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1128, "emissao": "2026-03-12T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1129, "emissao": "2026-02-03T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1130, "emissao": "2026-02-11T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1131, "emissao": "2026-06-30T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1132, "emissao": "2026-01-29T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1133, "emissao": "2026-06-26T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1134, "emissao": "2026-04-05T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1135, "emissao": "2026-04-21T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1136, "emissao": "2026-04-04T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1137, "emissao": "2026-01-11T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1138, "emissao": "2026-03-05T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1139, "emissao": "2026-05-24T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1140, "emissao": "2026-06-08T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1141, "emissao": "2026-03-02T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1142, "emissao": "2026-02-15T00:00:00", "vendedor": "João", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1143, "emissao": "2026-07-08T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1144, "emissao": "2026-04-16T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1145, "emissao": "2026-07-08T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1146, "emissao": "2026-02-10T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1147, "emissao": "2026-04-08T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1148, "emissao": "2026-05-01T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1149, "emissao": "2026-04-28T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1150, "emissao": "2026-02-28T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1151, "emissao": "2026-02-19T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1152, "emissao": "2026-01-18T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1153, "emissao": "2026-06-14T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1154, "emissao": "2026-05-18T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1155, "emissao": "2026-01-30T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1156, "emissao": "2026-03-09T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1157, "emissao": "2026-04-22T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1158, "emissao": "2026-03-22T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1159, "emissao": "2026-05-11T00:00:00", "vendedor": "Paulo", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1160, "emissao": "2026-05-28T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1161, "emissao": "2026-07-01T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1162, "emissao": "2026-05-18T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1163, "emissao": "2026-07-09T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1164, "emissao": "2026-04-04T00:00:00", "vendedor": "João", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1165, "emissao": "2026-06-20T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1166, "emissao": "2026-06-19T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1167, "emissao": "2026-03-18T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1168, "emissao": "2026-04-15T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1169, "emissao": "2026-03-17T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1170, "emissao": "2026-04-18T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1171, "emissao": "2026-06-23T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1172, "emissao": "2026-06-07T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1173, "emissao": "2026-05-21T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1174, "emissao": "2026-03-15T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1175, "emissao": "2026-05-29T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1176, "emissao": "2026-04-30T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1177, "emissao": "2026-02-24T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1178, "emissao": "2026-07-08T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1179, "emissao": "2026-03-14T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1180, "emissao": "2026-06-08T00:00:00", "vendedor": "Tiago", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1181, "emissao": "2026-03-02T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1182, "emissao": "2026-02-20T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1183, "emissao": "2026-03-04T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1184, "emissao": "2026-01-19T00:00:00", "vendedor": "João", "totalProdutosTexto": "3x Jogo de Anéis de Segmento.", "valor": 652.57}, {"nota": 1185, "emissao": "2026-06-11T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1186, "emissao": "2026-06-28T00:00:00", "vendedor": "João", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1187, "emissao": "2026-03-04T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1188, "emissao": "2026-01-02T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}, {"nota": 1189, "emissao": "2026-01-28T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "4x Correia de Acessórios Alternador, 4x Bobina de Ignição Individual, 1x Filtro de Óleo Lubrificante.", "valor": 932.64}, {"nota": 1190, "emissao": "2026-02-15T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1191, "emissao": "2026-05-13T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1192, "emissao": "2026-03-05T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1193, "emissao": "2026-02-04T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1194, "emissao": "2026-05-16T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1195, "emissao": "2026-04-24T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1196, "emissao": "2026-05-10T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1197, "emissao": "2026-05-21T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado, 3x Jogo de Anéis de Segmento.", "valor": 815.53}, {"nota": 1198, "emissao": "2026-05-02T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1199, "emissao": "2026-03-05T00:00:00", "vendedor": "Almir", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1200, "emissao": "2026-05-14T00:00:00", "vendedor": "João", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1201, "emissao": "2026-03-12T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Rolamento de Esferas Blindado.", "valor": 363.91}, {"nota": 1202, "emissao": "2026-03-15T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "2x Válvula de Escape, 4x Bronzina de Biela, 1x Terminal de Direção.", "valor": 410.02}, {"nota": 1203, "emissao": "2026-03-23T00:00:00", "vendedor": "Lucas", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1204, "emissao": "2026-02-08T00:00:00", "vendedor": "Bruno", "totalProdutosTexto": "6x Válvula de Admissão.", "valor": 203.4}, {"nota": 1205, "emissao": "2026-02-09T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "1x Válvula de Admissão, 1x Vela de Ignição IridiumIX, 2x Amortecedor Dianteiro Pressurizado.", "valor": 734.69}, {"nota": 1206, "emissao": "2026-04-17T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1207, "emissao": "2026-04-30T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Kit de Embreagem Completo.", "valor": 830.71}, {"nota": 1208, "emissao": "2026-04-18T00:00:00", "vendedor": "João", "totalProdutosTexto": "1x Jogo de Pastilhas de Freio, 2x Bomba d'Água do Motor, 3x Filtro de Ar do Motor.", "valor": 678.2}, {"nota": 1209, "emissao": "2026-05-30T00:00:00", "vendedor": "Jefersson", "totalProdutosTexto": "3x Bronzina de Mancal, 1x Filtro de Ar do Motor.", "valor": 670.78}, {"nota": 1210, "emissao": "2026-05-28T00:00:00", "vendedor": "João", "totalProdutosTexto": "2x Bronzina de Mancal, 2x Disco de Freio Ventilado, 1x Coxim do Motor Hidráulico.", "valor": 867.42}], "docs": [{"id": 1, "nome": "Contrato de Prestação de Serviços", "tipo": "Contrato", "emissao": "2026-01-10", "status": "Concluído"}, {"id": 2, "nome": "Relatório de Auditoria Interna", "tipo": "Relatório", "emissao": "2026-03-15", "status": "Pendente"}, {"id": 3, "nome": "Política de Segurança da Informação", "tipo": "Diretriz", "emissao": "2026-05-20", "status": "Concluído"}, {"id": 4, "nome": "Termo de Confidencialidade (NDA)", "tipo": "Contrato", "emissao": "2026-06-01", "status": "Pendente"}, {"id": 5, "nome": "Recibo de Contracheque - Filial", "tipo": "Folha de Pagamento", "emissao": "2026-06-05", "status": "Pendente"}, {"id": 6, "nome": "Relação Geral de Contratos Vigentes", "tipo": "Relatório", "emissao": "2026-06-10", "status": "Pendente"}, {"id": 7, "nome": "Espelho de Ajuste de Ponto Eletrônico", "tipo": "RH / Pessoal", "emissao": "2026-06-15", "status": "Pendente"}, {"id": 8, "nome": "Escala de Trabalho em Feriados", "tipo": "RH / Pessoal", "emissao": "2026-06-20", "status": "Pendente"}, {"id": 9, "nome": "Escala e Programação de Férias", "tipo": "RH / Pessoal", "emissao": "2026-06-25", "status": "Concluído"}, {"id": 10, "nome": "Comprovante de Recolhimento do FGTS", "tipo": "Financeiro", "emissao": "2026-07-07", "status": "Concluído"}, {"id": 11, "nome": "Atestados de Saúde Ocupacional (ASO)", "tipo": "Segurança do Trabalho", "emissao": "2026-07-12", "status": "Pendente"}, {"id": 12, "nome": "Termo de Entrega de EPIs", "tipo": "Segurança do Trabalho", "emissao": "2026-07-18", "status": "Concluído"}, {"id": 13, "nome": "Relatório de Horas Extraordinárias", "tipo": "RH / Pessoal", "emissao": "2026-07-22", "status": "Pendente"}, {"id": 14, "nome": "Aditivo Contratual de Fornecedores", "tipo": "Contrato", "emissao": "2026-08-01", "status": "Pendente"}, {"id": 15, "nome": "Guia de INSS e Encargos Sociais", "tipo": "Financeiro", "emissao": "2026-08-05", "status": "Pendente"}]};
+</script>
+<script>
+/* ===================== ERP Gestão Comercial — lógica local (sem Firebase, sem persistência) ===================== */
 
-const MOCK = {"sales":[{"nota":1056,"emissao":"2026-01-01T00:00:00","vendedor":"Lucas","valor":357.95},{"nota":1188,"emissao":"2026-01-02T00:00:00","vendedor":"Almir","valor":867.42},{"nota":1010,"emissao":"2026-01-02T00:00:00","vendedor":"Almir","valor":815.53},{"nota":1046,"emissao":"2026-01-03T00:00:00","vendedor":"Jefersson","valor":734.69},{"nota":1057,"emissao":"2026-01-05T00:00:00","vendedor":"Paulo","valor":932.64},{"nota":1073,"emissao":"2026-01-09T00:00:00","vendedor":"Almir","valor":363.91},{"nota":1005,"emissao":"2026-01-09T00:00:00","vendedor":"Paulo","valor":139.01},{"nota":1137,"emissao":"2026-01-11T00:00:00","vendedor":"Tiago","valor":249.57},{"nota":1107,"emissao":"2026-01-11T00:00:00","vendedor":"Lucas","valor":127.88},{"nota":1041,"emissao":"2026-01-13T00:00:00","vendedor":"Almir","valor":154.17},{"nota":1081,"emissao":"2026-01-14T00:00:00","vendedor":"Jefersson","valor":670.78},{"nota":1127,"emissao":"2026-01-14T00:00:00","vendedor":"Paulo","valor":652.57},{"nota":1031,"emissao":"2026-01-15T00:00:00","vendedor":"Bruno","valor":830.71},{"nota":1093,"emissao":"2026-01-16T00:00:00","vendedor":"Bruno","valor":410.02},{"nota":1020,"emissao":"2026-01-18T00:00:00","vendedor":"Paulo","valor":678.2},{"nota":1152,"emissao":"2026-01-18T00:00:00","vendedor":"Almir","valor":315.17},{"nota":1104,"emissao":"2026-01-18T00:00:00","vendedor":"Lucas","valor":114.56},{"nota":1113,"emissao":"2026-01-19T00:00:00","vendedor":"Paulo","valor":485.37},{"nota":1184,"emissao":"2026-01-19T00:00:00","vendedor":"João","valor":443.72},{"nota":1087,"emissao":"2026-01-20T00:00:00","vendedor":"João","valor":817.62},{"nota":1090,"emissao":"2026-01-24T00:00:00","vendedor":"Almir","valor":856.26},{"nota":1014,"emissao":"2026-01-25T00:00:00","vendedor":"Tiago","valor":855.12},{"nota":1022,"emissao":"2026-01-26T00:00:00","vendedor":"João","valor":314.07},{"nota":1121,"emissao":"2026-01-27T00:00:00","vendedor":"Bruno","valor":301.24},{"nota":1052,"emissao":"2026-01-28T00:00:00","vendedor":"Almir","valor":644.04},{"nota":1122,"emissao":"2026-01-28T00:00:00","vendedor":"Jefersson","valor":575.56},{"nota":1189,"emissao":"2026-01-28T00:00:00","vendedor":"Almir","valor":453.89},{"nota":1084,"emissao":"2026-01-28T00:00:00","vendedor":"Bruno","valor":232.01},{"nota":1132,"emissao":"2026-01-29T00:00:00","vendedor":"Paulo","valor":947.8},{"nota":1155,"emissao":"2026-01-30T00:00:00","vendedor":"Tiago","valor":219.64},{"nota":1129,"emissao":"2026-02-03T00:00:00","vendedor":"Jefersson","valor":980.81},{"nota":1193,"emissao":"2026-02-04T00:00:00","vendedor":"Almir","valor":491.41},{"nota":1040,"emissao":"2026-02-05T00:00:00","vendedor":"Lucas","valor":518.84},{"nota":1204,"emissao":"2026-02-08T00:00:00","vendedor":"Bruno","valor":413.88},{"nota":1012,"emissao":"2026-02-09T00:00:00","vendedor":"Bruno","valor":959.35},{"nota":1054,"emissao":"2026-02-09T00:00:00","vendedor":"Tiago","valor":774.39},{"nota":1205,"emissao":"2026-02-09T00:00:00","vendedor":"Jefersson","valor":253.26},{"nota":1146,"emissao":"2026-02-10T00:00:00","vendedor":"Almir","valor":716.21},{"nota":1130,"emissao":"2026-02-11T00:00:00","vendedor":"Jefersson","valor":469.74},{"nota":1028,"emissao":"2026-02-11T00:00:00","vendedor":"João","valor":410.48},{"nota":1063,"emissao":"2026-02-12T00:00:00","vendedor":"Tiago","valor":551.29},{"nota":1091,"emissao":"2026-02-12T00:00:00","vendedor":"João","valor":511.36},{"nota":1027,"emissao":"2026-02-13T00:00:00","vendedor":"Lucas","valor":742.67},{"nota":1190,"emissao":"2026-02-15T00:00:00","vendedor":"Almir","valor":960.07},{"nota":1142,"emissao":"2026-02-15T00:00:00","vendedor":"João","valor":73.55},{"nota":1086,"emissao":"2026-02-16T00:00:00","vendedor":"Tiago","valor":489.5},{"nota":1151,"emissao":"2026-02-19T00:00:00","vendedor":"João","valor":361.85},{"nota":1182,"emissao":"2026-02-20T00:00:00","vendedor":"Bruno","valor":73.2},{"nota":1066,"emissao":"2026-02-21T00:00:00","vendedor":"Jefersson","valor":346.13},{"nota":1033,"emissao":"2026-02-24T00:00:00","vendedor":"Lucas","valor":882.55},{"nota":1177,"emissao":"2026-02-24T00:00:00","vendedor":"Lucas","valor":499.53},{"nota":1092,"emissao":"2026-02-24T00:00:00","vendedor":"Almir","valor":430.99},{"nota":1115,"emissao":"2026-02-24T00:00:00","vendedor":"Lucas","valor":301.94},{"nota":1071,"emissao":"2026-02-26T00:00:00","vendedor":"Paulo","valor":117.44},{"nota":1069,"emissao":"2026-02-27T00:00:00","vendedor":"Paulo","valor":371.18},{"nota":1150,"emissao":"2026-02-28T00:00:00","vendedor":"Bruno","valor":72.48},{"nota":1006,"emissao":"2026-03-01T00:00:00","vendedor":"Lucas","valor":621.92},{"nota":1181,"emissao":"2026-03-02T00:00:00","vendedor":"Jefersson","valor":344.9},{"nota":1141,"emissao":"2026-03-02T00:00:00","vendedor":"Almir","valor":204.38},{"nota":1105,"emissao":"2026-03-02T00:00:00","vendedor":"João","valor":163.89},{"nota":1187,"emissao":"2026-03-04T00:00:00","vendedor":"Bruno","valor":673.26},{"nota":1183,"emissao":"2026-03-04T00:00:00","vendedor":"João","valor":630.71},{"nota":1077,"emissao":"2026-03-04T00:00:00","vendedor":"Almir","valor":499.32},{"nota":1199,"emissao":"2026-03-05T00:00:00","vendedor":"Almir","valor":655.78},{"nota":1192,"emissao":"2026-03-05T00:00:00","vendedor":"Almir","valor":165.29},{"nota":1138,"emissao":"2026-03-05T00:00:00","vendedor":"Jefersson","valor":147.65},{"nota":1036,"emissao":"2026-03-09T00:00:00","vendedor":"Bruno","valor":284.3},{"nota":1156,"emissao":"2026-03-09T00:00:00","vendedor":"Paulo","valor":152.98},{"nota":1025,"emissao":"2026-03-10T00:00:00","vendedor":"Jefersson","valor":939.82},{"nota":1123,"emissao":"2026-03-11T00:00:00","vendedor":"Tiago","valor":624.59},{"nota":1002,"emissao":"2026-03-12T00:00:00","vendedor":"Bruno","valor":262.05},{"nota":1201,"emissao":"2026-03-12T00:00:00","vendedor":"João","valor":123.61},{"nota":1128,"emissao":"2026-03-12T00:00:00","vendedor":"Paulo","valor":53.37},{"nota":1179,"emissao":"2026-03-14T00:00:00","vendedor":"Lucas","valor":680.66},{"nota":1174,"emissao":"2026-03-15T00:00:00","vendedor":"Bruno","valor":458.39},{"nota":1202,"emissao":"2026-03-15T00:00:00","vendedor":"Bruno","valor":308.13},{"nota":1021,"emissao":"2026-03-16T00:00:00","vendedor":"Paulo","valor":862.55},{"nota":1098,"emissao":"2026-03-17T00:00:00","vendedor":"Bruno","valor":970.27},{"nota":1169,"emissao":"2026-03-17T00:00:00","vendedor":"Lucas","valor":170.92},{"nota":1112,"emissao":"2026-03-18T00:00:00","vendedor":"João","valor":350.37},{"nota":1167,"emissao":"2026-03-18T00:00:00","vendedor":"Lucas","valor":343.82},{"nota":1058,"emissao":"2026-03-20T00:00:00","vendedor":"Bruno","valor":105.03},{"nota":1034,"emissao":"2026-03-22T00:00:00","vendedor":"Bruno","valor":672.67},{"nota":1158,"emissao":"2026-03-22T00:00:00","vendedor":"João","valor":625.9},{"nota":1032,"emissao":"2026-03-22T00:00:00","vendedor":"João","valor":304.35},{"nota":1109,"emissao":"2026-03-22T00:00:00","vendedor":"Tiago","valor":244.05},{"nota":1100,"emissao":"2026-03-22T00:00:00","vendedor":"Paulo","valor":97.64},{"nota":1203,"emissao":"2026-03-23T00:00:00","vendedor":"Lucas","valor":126.55},{"nota":1013,"emissao":"2026-03-28T00:00:00","vendedor":"Paulo","valor":138.11},{"nota":1116,"emissao":"2026-03-31T00:00:00","vendedor":"Paulo","valor":885.31},{"nota":1019,"emissao":"2026-04-03T00:00:00","vendedor":"Lucas","valor":232.67},{"nota":1136,"emissao":"2026-04-04T00:00:00","vendedor":"Almir","valor":973.59},{"nota":1164,"emissao":"2026-04-04T00:00:00","vendedor":"João","valor":116.48},{"nota":1134,"emissao":"2026-04-05T00:00:00","vendedor":"Lucas","valor":574.9},{"nota":1024,"emissao":"2026-04-05T00:00:00","vendedor":"Tiago","valor":249.03},{"nota":1117,"emissao":"2026-04-05T00:00:00","vendedor":"Tiago","valor":199.86},{"nota":1017,"emissao":"2026-04-07T00:00:00","vendedor":"Paulo","valor":574.44},{"nota":1044,"emissao":"2026-04-08T00:00:00","vendedor":"Lucas","valor":996.32},{"nota":1147,"emissao":"2026-04-08T00:00:00","vendedor":"Almir","valor":86.79},{"nota":1094,"emissao":"2026-04-10T00:00:00","vendedor":"Tiago","valor":930.19},{"nota":1111,"emissao":"2026-04-12T00:00:00","vendedor":"Bruno","valor":688.11},{"nota":1035,"emissao":"2026-04-12T00:00:00","vendedor":"Jefersson","valor":485.91},{"nota":1039,"emissao":"2026-04-13T00:00:00","vendedor":"Tiago","valor":258.35},{"nota":1168,"emissao":"2026-04-15T00:00:00","vendedor":"Tiago","valor":432.28},{"nota":1078,"emissao":"2026-04-15T00:00:00","vendedor":"Bruno","valor":139.61},{"nota":1080,"emissao":"2026-04-16T00:00:00","vendedor":"João","valor":870.64},{"nota":1144,"emissao":"2026-04-16T00:00:00","vendedor":"Almir","valor":686.41},{"nota":1206,"emissao":"2026-04-17T00:00:00","vendedor":"João","valor":364.34},{"nota":1170,"emissao":"2026-04-18T00:00:00","vendedor":"Jefersson","valor":943.35},{"nota":1208,"emissao":"2026-04-18T00:00:00","vendedor":"João","valor":909.6},{"nota":1043,"emissao":"2026-04-19T00:00:00","vendedor":"Lucas","valor":110.35},{"nota":1135,"emissao":"2026-04-21T00:00:00","vendedor":"Bruno","valor":89.74},{"nota":1157,"emissao":"2026-04-22T00:00:00","vendedor":"Tiago","valor":742.12},{"nota":1049,"emissao":"2026-04-22T00:00:00","vendedor":"Bruno","valor":481.04},{"nota":1195,"emissao":"2026-04-24T00:00:00","vendedor":"Lucas","valor":824.26},{"nota":1009,"emissao":"2026-04-25T00:00:00","vendedor":"Lucas","valor":314.28},{"nota":1095,"emissao":"2026-04-27T00:00:00","vendedor":"Tiago","valor":451.86},{"nota":1149,"emissao":"2026-04-28T00:00:00","vendedor":"Tiago","valor":339.93},{"nota":1176,"emissao":"2026-04-30T00:00:00","vendedor":"João","valor":470.05},{"nota":1207,"emissao":"2026-04-30T00:00:00","vendedor":"João","valor":109.15},{"nota":1148,"emissao":"2026-05-01T00:00:00","vendedor":"Bruno","valor":239.59},{"nota":1198,"emissao":"2026-05-02T00:00:00","vendedor":"João","valor":296.23},{"nota":1101,"emissao":"2026-05-03T00:00:00","vendedor":"Lucas","valor":923.42},{"nota":1075,"emissao":"2026-05-05T00:00:00","vendedor":"Bruno","valor":562.27},{"nota":1060,"emissao":"2026-05-05T00:00:00","vendedor":"Almir","valor":115.75},{"nota":1126,"emissao":"2026-05-06T00:00:00","vendedor":"Tiago","valor":910.07},{"nota":1051,"emissao":"2026-05-09T00:00:00","vendedor":"Almir","valor":219.72},{"nota":1196,"emissao":"2026-05-10T00:00:00","vendedor":"João","valor":839.04},{"nota":1103,"emissao":"2026-05-11T00:00:00","vendedor":"Paulo","valor":858.78},{"nota":1159,"emissao":"2026-05-11T00:00:00","vendedor":"Paulo","valor":415.94},{"nota":1074,"emissao":"2026-05-12T00:00:00","vendedor":"Bruno","valor":314.55},{"nota":1068,"emissao":"2026-05-13T00:00:00","vendedor":"João","valor":164.95},{"nota":1191,"emissao":"2026-05-13T00:00:00","vendedor":"João","valor":97.71},{"nota":1200,"emissao":"2026-05-14T00:00:00","vendedor":"João","valor":645.41},{"nota":1045,"emissao":"2026-05-16T00:00:00","vendedor":"Tiago","valor":972.52},{"nota":1194,"emissao":"2026-05-16T00:00:00","vendedor":"Lucas","valor":615.68},{"nota":1102,"emissao":"2026-05-16T00:00:00","vendedor":"Bruno","valor":104.04},{"nota":1061,"emissao":"2026-05-17T00:00:00","vendedor":"Almir","valor":169.47},{"nota":1154,"emissao":"2026-05-18T00:00:00","vendedor":"Tiago","valor":942.28},{"nota":1162,"emissao":"2026-05-18T00:00:00","vendedor":"Jefersson","valor":733.46},{"nota":1085,"emissao":"2026-05-18T00:00:00","vendedor":"João","valor":183.17},{"nota":1055,"emissao":"2026-05-19T00:00:00","vendedor":"Almir","valor":926.31},{"nota":1065,"emissao":"2026-05-19T00:00:00","vendedor":"Almir","valor":743.43},{"nota":1089,"emissao":"2026-05-19T00:00:00","vendedor":"Almir","valor":64.02},{"nota":1004,"emissao":"2026-05-20T00:00:00","vendedor":"Paulo","valor":610.97},{"nota":1118,"emissao":"2026-05-20T00:00:00","vendedor":"Jefersson","valor":337.39},{"nota":1197,"emissao":"2026-05-21T00:00:00","vendedor":"João","valor":902.35},{"nota":1088,"emissao":"2026-05-21T00:00:00","vendedor":"Paulo","valor":98.06},{"nota":1173,"emissao":"2026-05-21T00:00:00","vendedor":"Almir","valor":50.39},{"nota":1120,"emissao":"2026-05-22T00:00:00","vendedor":"Tiago","valor":935.17},{"nota":1007,"emissao":"2026-05-24T00:00:00","vendedor":"Bruno","valor":730.22},{"nota":1139,"emissao":"2026-05-24T00:00:00","vendedor":"Almir","valor":436.06},{"nota":1037,"emissao":"2026-05-24T00:00:00","vendedor":"Lucas","valor":299.6},{"nota":1114,"emissao":"2026-05-25T00:00:00","vendedor":"Paulo","valor":119.6},{"nota":1106,"emissao":"2026-05-26T00:00:00","vendedor":"Bruno","valor":599.97},{"nota":1059,"emissao":"2026-05-26T00:00:00","vendedor":"Paulo","valor":131.37},{"nota":1210,"emissao":"2026-05-28T00:00:00","vendedor":"João","valor":503.13},{"nota":1160,"emissao":"2026-05-28T00:00:00","vendedor":"Bruno","valor":291.99},{"nota":1175,"emissao":"2026-05-29T00:00:00","vendedor":"Lucas","valor":671.97},{"nota":1099,"emissao":"2026-05-29T00:00:00","vendedor":"Jefersson","valor":565.09},{"nota":1038,"emissao":"2026-05-30T00:00:00","vendedor":"João","valor":902.93},{"nota":1209,"emissao":"2026-05-30T00:00:00","vendedor":"Jefersson","valor":68.56},{"nota":1070,"emissao":"2026-05-31T00:00:00","vendedor":"Lucas","valor":268.61},{"nota":1015,"emissao":"2026-06-04T00:00:00","vendedor":"Tiago","valor":816.77},{"nota":1064,"emissao":"2026-06-05T00:00:00","vendedor":"João","valor":966.14},{"nota":1172,"emissao":"2026-06-07T00:00:00","vendedor":"Lucas","valor":335.9},{"nota":1140,"emissao":"2026-06-08T00:00:00","vendedor":"Jefersson","valor":196.83},{"nota":1180,"emissao":"2026-06-08T00:00:00","vendedor":"Tiago","valor":138.72},{"nota":1018,"emissao":"2026-06-10T00:00:00","vendedor":"Lucas","valor":891.18},{"nota":1042,"emissao":"2026-06-10T00:00:00","vendedor":"Bruno","valor":802.48},{"nota":1072,"emissao":"2026-06-11T00:00:00","vendedor":"Paulo","valor":267.49},{"nota":1185,"emissao":"2026-06-11T00:00:00","vendedor":"Lucas","valor":234.71},{"nota":1023,"emissao":"2026-06-12T00:00:00","vendedor":"Almir","valor":396.59},{"nota":1125,"emissao":"2026-06-12T00:00:00","vendedor":"Almir","valor":300.78},{"nota":1053,"emissao":"2026-06-13T00:00:00","vendedor":"Lucas","valor":628.52},{"nota":1029,"emissao":"2026-06-13T00:00:00","vendedor":"Jefersson","valor":579.1},{"nota":1001,"emissao":"2026-06-13T00:00:00","vendedor":"Paulo","valor":73.76},{"nota":1153,"emissao":"2026-06-14T00:00:00","vendedor":"Lucas","valor":429.69},{"nota":1048,"emissao":"2026-06-14T00:00:00","vendedor":"Tiago","valor":155.97},{"nota":1026,"emissao":"2026-06-15T00:00:00","vendedor":"Paulo","valor":628.67},{"nota":1082,"emissao":"2026-06-15T00:00:00","vendedor":"Paulo","valor":107.58},{"nota":1119,"emissao":"2026-06-17T00:00:00","vendedor":"Lucas","valor":57.43},{"nota":1062,"emissao":"2026-06-18T00:00:00","vendedor":"João","valor":949.51},{"nota":1108,"emissao":"2026-06-18T00:00:00","vendedor":"Lucas","valor":586.97},{"nota":1079,"emissao":"2026-06-18T00:00:00","vendedor":"João","valor":386.58},{"nota":1166,"emissao":"2026-06-19T00:00:00","vendedor":"Almir","valor":168.39},{"nota":1165,"emissao":"2026-06-20T00:00:00","vendedor":"Tiago","valor":642.0},{"nota":1067,"emissao":"2026-06-21T00:00:00","vendedor":"Jefersson","valor":404.75},{"nota":1171,"emissao":"2026-06-23T00:00:00","vendedor":"Jefersson","valor":907.67},{"nota":1047,"emissao":"2026-06-24T00:00:00","vendedor":"Lucas","valor":763.33},{"nota":1030,"emissao":"2026-06-25T00:00:00","vendedor":"Tiago","valor":850.71},{"nota":1133,"emissao":"2026-06-26T00:00:00","vendedor":"Bruno","valor":568.31},{"nota":1186,"emissao":"2026-06-28T00:00:00","vendedor":"João","valor":519.66},{"nota":1011,"emissao":"2026-06-28T00:00:00","vendedor":"João","valor":373.24},{"nota":1008,"emissao":"2026-06-29T00:00:00","vendedor":"Lucas","valor":448.54},{"nota":1131,"emissao":"2026-06-30T00:00:00","vendedor":"João","valor":582.86},{"nota":1161,"emissao":"2026-07-01T00:00:00","vendedor":"João","valor":51.61},{"nota":1110,"emissao":"2026-07-03T00:00:00","vendedor":"Tiago","valor":276.75},{"nota":1124,"emissao":"2026-07-03T00:00:00","vendedor":"Tiago","valor":243.42},{"nota":1097,"emissao":"2026-07-03T00:00:00","vendedor":"João","valor":197.06},{"nota":1050,"emissao":"2026-07-04T00:00:00","vendedor":"Jefersson","valor":300.22},{"nota":1076,"emissao":"2026-07-05T00:00:00","vendedor":"Lucas","valor":597.4},{"nota":1083,"emissao":"2026-07-06T00:00:00","vendedor":"Tiago","valor":810.56},{"nota":1016,"emissao":"2026-07-06T00:00:00","vendedor":"João","valor":559.42},{"nota":1096,"emissao":"2026-07-07T00:00:00","vendedor":"Almir","valor":577.98},{"nota":1143,"emissao":"2026-07-08T00:00:00","vendedor":"Tiago","valor":793.27},{"nota":1003,"emissao":"2026-07-08T00:00:00","vendedor":"Paulo","valor":692.86},{"nota":1178,"emissao":"2026-07-08T00:00:00","vendedor":"Bruno","valor":675.91},{"nota":1145,"emissao":"2026-07-08T00:00:00","vendedor":"Almir","valor":285.76},{"nota":1163,"emissao":"2026-07-09T00:00:00","vendedor":"Jefersson","valor":687.1}],"products":[{"codigo":1,"nome":"Rolamento de Esferas Blindado (DDU/2RS C3 High-Speed)","quantidade":350,"preco":44.96},{"codigo":2,"nome":"Biela Forjada do Motor (Aço 4340 H-Beam)","quantidade":180,"preco":218.5},{"codigo":3,"nome":"Virabrequim de Aço Forjado (Nitretado/Microfundido)","quantidade":40,"preco":826.34},{"codigo":4,"nome":"Válvula de Admissão (Aço Inox com Haste Nitretada)","quantidade":260,"preco":33.9},{"codigo":5,"nome":"Válvula de Escape (Liga Inconel para Alta Temperatura)","quantidade":260,"preco":37.55},{"codigo":6,"nome":"Correia Dentada Sincronizadora (HNBR Reforçada com Kevlar)","quantidade":120,"preco":74.93},{"codigo":7,"nome":"Correia de Acessórios Alternador (Poly-V Multi-Perfil)","quantidade":90,"preco":40.16},{"codigo":8,"nome":"Jogo de Anéis de Segmento (Cromo-Níquel Alta Vedação)","quantidade":60,"preco":170.19},{"codigo":9,"nome":"Bronzina de Biela (Tri-Metal Semi-Acabada - Par)","quantidade":40,"preco":64.23},{"codigo":10,"nome":"Bronzina de Mancal (Tri-Metal Revestida - Par)","quantidade":20,"preco":94.26},{"codigo":11,"nome":"Conjunto Diferencial Completo (Autoblocante LSD / Coroa e Pinhão Hipóide)","quantidade":15,"preco":2479.16},{"codigo":12,"nome":"Eixo Cardan Bi-Partido (Com Cruzeta Selada e Suporte Central)","quantidade":25,"preco":1150.0},{"codigo":13,"nome":"Rolamento Roda Dianteira (Duplo de Esferas Angular com ABS Integrado)","quantidade":110,"preco":164.55},{"codigo":14,"nome":"Líquido de Arrefecimento Concentrado (Orgânico OAT / Motores Alumínio 1L)","quantidade":300,"preco":38.0},{"codigo":15,"nome":"Vela de Ignição IridiumIX (Eletrodo Central 0.6mm / Alta Performance)","quantidade":400,"preco":60.79},{"codigo":16,"nome":"Bobina de Ignição Individual (Tipo Copo / Pencil Coil High Voltage)","quantidade":80,"preco":185.0},{"codigo":17,"nome":"Amortecedor Dianteiro Pressurizado (Gás-Nitrogênio / Dupla Ação)","quantidade":70,"preco":320.0},{"codigo":18,"nome":"Disco de Freio Ventilado (Aço Carbono Perfurado / Ranhurado 300mm)","quantidade":100,"preco":209.45},{"codigo":19,"nome":"Jogo de Pastilhas de Freio (Cerâmica Carbon-Metallic Low Dust)","quantidade":150,"preco":145.0},{"codigo":20,"nome":"Kit de Embreagem Completo (Platô, Disco Orgânico Revestido e Atuador Hydro)","quantidade":35,"preco":680.0},{"codigo":21,"nome":"Bomba d'Água do Motor (Rotor de Alumínio Inject-Molded)","quantidade":65,"preco":194.6},{"codigo":22,"nome":"Bomba de Combustível de Alta Pressão (Injeção Direta GDI / 200 Bar)","quantidade":30,"preco":886.13},{"codigo":23,"nome":"Sensor de Posição da Árvore de Cames (Hall Effect / Alta Precisão)","quantidade":95,"preco":106.72},{"codigo":24,"nome":"Radiador de Água do Motor (Colmeia em Alumínio Brasado Brazing)","quantidade":40,"preco":447.38},{"codigo":25,"nome":"Filtro de Óleo Lubrificante (Elemento Sintético de Alta Eficiência)","quantidade":500,"preco":32.0},{"codigo":26,"nome":"Filtro de Ar do Motor (Elemento Filtrante de Papel Plissado Tratado)","quantidade":350,"preco":48.0},{"codigo":27,"nome":"Junta do Cabeçote (Laminada Multi-Layer Steel - MLS)","quantidade":85,"preco":177.93},{"codigo":28,"nome":"Pivô da Suspensão Dianteira (Esférico Selado com Coifa em Neoprene)","quantidade":140,"preco":85.0},{"codigo":29,"nome":"Terminal de Direção (Rótula Pivotante / Tracionado Heavy Duty)","quantidade":130,"preco":78.0},{"codigo":30,"nome":"Coxim do Motor Hidráulico (Com Absorvedor de Vibração AT)","quantidade":50,"preco":260.0}],"docs":[{"id":1,"nome":"Contrato de Prestação de Serviços","tipo":"Contrato","emissao":"2026-01-10","status":"Concluído"},{"id":2,"nome":"Relatório de Auditoria Interna","tipo":"Relatório","emissao":"2026-03-15","status":"Pendente"},{"id":3,"nome":"Política de Segurança da Informação","tipo":"Diretriz","emissao":"2026-05-20","status":"Concluído"},{"id":4,"nome":"Termo de Confidencialidade (NDA)","tipo":"Contrato","emissao":"2026-06-01","status":"Pendente"},{"id":5,"nome":"Recibo de Contracheque - Filial","tipo":"Folha de Pagamento","emissao":"2026-06-05","status":"Pendente"},{"id":6,"nome":"Relação Geral de Contratos Vigentes","tipo":"Relatório","emissao":"2026-06-10","status":"Pendente"},{"id":7,"nome":"Espelho de Ajuste de Ponto Eletrônico","tipo":"RH / Pessoal","emissao":"2026-06-15","status":"Pendente"},{"id":8,"nome":"Escala de Trabalho em Feriados","tipo":"RH / Pessoal","emissao":"2026-06-20","status":"Pendente"},{"id":9,"nome":"Escala e Programação de Férias","tipo":"RH / Pessoal","emissao":"2026-06-25","status":"Concluído"},{"id":10,"nome":"Comprovante de Recolhimento do FGTS","tipo":"Financeiro","emissao":"2026-07-07","status":"Concluído"},{"id":11,"nome":"Atestados de Saúde Ocupacional (ASO)","tipo":"Segurança do Trabalho","emissao":"2026-07-12","status":"Pendente"},{"id":12,"nome":"Termo de Entrega de EPIs","tipo":"Segurança do Trabalho","emissao":"2026-07-18","status":"Concluído"},{"id":13,"nome":"Relatório de Horas Extraordinárias","tipo":"RH / Pessoal","emissao":"2026-07-22","status":"Pendente"},{"id":14,"nome":"Aditivo Contratual de Fornecedores","tipo":"Contrato","emissao":"2026-08-01","status":"Pendente"},{"id":15,"nome":"Guia de INSS e Encargos Sociais","tipo":"Financeiro","emissao":"2026-08-05","status":"Pendente"}]};
-const FIREBASE_CONFIG = {"apiKey": "COLOQUE_SUA_API_KEY", "authDomain": "SEU_PROJETO.firebaseapp.com", "projectId": "SEU_PROJECT_ID", "storageBucket": "SEU_PROJETO.firebasestorage.app", "messagingSenderId": "SEU_MESSAGING_SENDER_ID", "appId": "SEU_APP_ID"};
+const VENDEDORES_PADRAO = ["Almir","Bruno","Jefersson","João","Lucas","Paulo","Tiago"];
+const MESES_PT = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const LOW_STOCK_THRESHOLD = 30;
+const CREDENCIAIS = { usuario: "admin", senha: "admin" };
 
-const state={page:"dashboard",products:[],sales:[],docs:[],user:null,mode:"local",charts:{}};
-let db=null,auth=null;
-
-const $=s=>document.querySelector(s);
-const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
-const dateBR=v=>{const d=new Date(v);return isNaN(d)?"—":d.toLocaleDateString("pt-BR")};
-const nowLocal=()=>{const d=new Date(), off=d.getTimezoneOffset(), x=new Date(d.getTime()-off*60000);return x.toISOString().slice(0,16)};
-function toast(msg,type="ok"){const t=$("#toast");t.textContent=msg;t.className=`fixed right-4 top-4 z-[100] max-w-sm rounded-xl px-4 py-3 text-sm font-semibold shadow-xl ${type==="error"?"bg-red-600 text-white":"bg-slate-900 text-white"};`;setTimeout(()=>t.classList.add("hidden"),2800);t.classList.remove("hidden")}
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function renderIcons(){if(window.lucide)lucide.createIcons()}
-function firebaseReady(){return FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith("COLOQUE_") && FIREBASE_CONFIG.projectId && !FIREBASE_CONFIG.projectId.startsWith("SEU_")}
-
-async function init(){
-  $("#loginScreen").classList.add("hidden"); $("#app").classList.remove("hidden");
-  loadLocal();
-  if(firebaseReady()){
-    try{
-      const app=initializeApp(FIREBASE_CONFIG);auth=getAuth(app);db=getFirestore(app);state.mode="firebase";
-      $("#modeLabel").textContent="Firebase • Firestore";
-      onAuthStateChanged(auth,async u=>{state.user=u;$("#userName").textContent=u?.email||"Usuário";if(u){await loadFirestore();render()}});
-      if(!auth.currentUser){$("#app").classList.add("hidden");$("#loginScreen").class.remove("hidden");$("#loginScreen").class.add("flex")}
-    }catch(e){console.error(e);state.mode="local";$("#modeLabel").textContent="Modo demonstração local";render()}
-  }else{$("#modeLabel").textContent="Modo demonstração local • Firebase não configurado";render()}
-}
-function loadLocal(){
-  const saved=localStorage.getItem("erp_gestao_state");
-  if(saved){Object.assign(state,JSON.parse(saved));return}
-  state.products=structuredClone(MOCK.products);state.sales=structuredClone(MOCK.sales).map(s=>({...s,itens:[],criadoPor:"mock"}));state.docs=structuredClone(MOCK.docs);
-  saveLocal();
-}
-function saveLocal(){localStorage.setItem("erp_gestao_state",JSON.stringify({products:state.products,sales:state.sales,docs:state.docs}))}
-
-async function loadFirestore(){
-  const [p,s,d]=await Promise.all([getDocs(collection(db,"produtos")),getDocs(collection(db,"vendas")),getDocs(collection(db,"documentos"))]);
-  state.products=p.docs.map(x=>({id:x.id,...x.data()}));
-  state.sales=s.docs.map(x=>({id:x.id,...x.data()}));
-  state.docs=d.docs.map(x=>({id:x.id,...x.data()}));
-  if(!state.products.length && !state.sales.length && !state.docs.length) await seedFirebase();
-}
-async function seedFirebase(){
-  const batch=writeBatch(db);
-  MOCK.products.forEach(x=>batch.set(doc(db,"produtos",String(x.codigo)),x));
-  MOCK.sales.forEach((x,i)=>batch.set(doc(db,"vendas",String(x.nota)+"-"+i),{...x,itens:[],criadoPor:"seed"}));
-  MOCK.docs.forEach(x=>batch.set(doc(db,"documentos",String(x.id)),x));
-  await batch.commit(); await loadFirestore(); toast("Banco Firebase populado com os dados da planilha.");
+const $ = s => document.querySelector(s);
+const money = v => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v) || 0);
+const dateBR = v => { const d = new Date(v); return isNaN(d) ? "—" : d.toLocaleDateString("pt-BR"); };
+const dateTimeBR = v => { const d = new Date(v); return isNaN(d) ? "—" : d.toLocaleString("pt-BR"); };
+const round2 = v => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function renderIcons() { if (window.lucide) lucide.createIcons(); }
+function toast(msg, type) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.className = "fixed right-4 top-4 z-[100] max-w-sm rounded-xl px-4 py-3 text-sm font-semibold shadow-xl " + (type === "error" ? "bg-red-600 text-white" : "bg-slate-900 text-white");
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(() => t.classList.add("hidden"), 3200);
+  t.classList.remove("hidden");
 }
 
-async function persistSale(sale,items){
-  if(state.mode==="firebase"){
-    const refs=items.map(i=>doc(db,"produtos",String(i.codigo)));
-    await runTransaction(db,async tx=>{
-      const snaps=[];
-      for(const ref of refs) snaps.push(await tx.get(ref));
-      snaps.forEach((snap,idx)=>{
-        if(!snap.exists())throw new Error("Produto não encontrado.");
-        const q=Number(snap.data().quantidade)||0, requested=Number(items[idx].quantidade)||0;
-        if(q<requested)throw new Error(`Estoque insuficiente para ${snap.data().nome}. Disponível: ${q}.`);
-      });
-      snaps.forEach((snap,idx)=>{
-        const q=Number(snap.data().quantidade)||0, requested=Number(items[idx].quantidade)||0;
-        tx.update(refs[idx],{quantidade:q-requested});
-      });
-      tx.set(doc(db,"vendas",String(sale.nota)),sale);
-    });
-    await loadFirestore();
-  }else{
-    for(const i of items){const p=state.products.find(x=>String(x.codigo)===String(i.codigo));if(!p||p.quantidade<i.quantidade)throw new Error(`Estoque insuficiente para ${p?.nome||i.codigo}.`);p.quantidade-=i.quantidade}
-    state.sales.push(sale);saveLocal();
+/* ---------- nome curto de produto (usado na coluna "Total produtos:") ---------- */
+function shortName(nomeCompleto) {
+  const i = nomeCompleto.indexOf(" (");
+  return i === -1 ? nomeCompleto.trim() : nomeCompleto.slice(0, i).trim();
+}
+
+/* ---------- interpreta "3x Filtro de Óleo Lubrificante, 2x Bomba d'Água do Motor." ---------- */
+function parseSaleItemsFromText(texto, products) {
+  const itens = [];
+  const naoEncontrados = [];
+  const limpo = String(texto || "").trim().replace(/\.\s*$/, "");
+  if (!limpo) return { itens, naoEncontrados };
+  const partes = limpo.split(",").map(p => p.trim()).filter(Boolean);
+  const lookup = new Map(products.map(p => [shortName(p.nome).toLowerCase(), p]));
+  for (const parte of partes) {
+    const m = parte.match(/^(\d+)\s*x\s+(.+)$/i);
+    if (!m) { naoEncontrados.push(parte); continue; }
+    const quantidade = parseInt(m[1], 10);
+    const nomeDigitado = m[2].trim();
+    const prod = lookup.get(nomeDigitado.toLowerCase());
+    if (!prod) { naoEncontrados.push(parte); continue; }
+    itens.push({ codigo: prod.codigo, nome: prod.nome, quantidade: quantidade, preco: prod.preco });
+  }
+  return { itens, naoEncontrados };
+}
+
+/* ---------- gera o texto "Total produtos:" a partir dos itens estruturados ---------- */
+function generateProductsText(itens) {
+  if (!itens.length) return "";
+  return itens.map(i => (i.quantidade + "x " + shortName(i.nome))).join(", ") + ".";
+}
+
+/* ===================== estado ===================== */
+const state = {
+  page: "dashboard",
+  products: [],
+  sales: [],
+  docs: [],
+  user: null,
+  charts: {}
+};
+
+function loadInitialData() {
+  const products = structuredClone(INITIAL_DATA.products);
+  const docs = structuredClone(INITIAL_DATA.docs);
+  const sales = structuredClone(INITIAL_DATA.sales).map(s => {
+    const parsed = parseSaleItemsFromText(s.totalProdutosTexto, products);
+    if (parsed.naoEncontrados.length) console.warn("NF " + s.nota + ": itens nao reconhecidos:", parsed.naoEncontrados);
+    return Object.assign({}, s, { itens: parsed.itens, historica: true });
+  });
+  return { products: products, sales: sales, docs: docs };
+}
+
+function resetState(silent) {
+  const fresh = loadInitialData();
+  state.products = fresh.products;
+  state.sales = fresh.sales;
+  state.docs = fresh.docs;
+  if (!silent) toast("Dados iniciais restaurados. Alterações da sessão foram descartadas.");
+}
+
+/* ===================== autenticação local ===================== */
+function login(usuario, senha) {
+  if (usuario === CREDENCIAIS.usuario && senha === CREDENCIAIS.senha) {
+    state.user = { nome: usuario };
+    return true;
+  }
+  return false;
+}
+function logout() { state.user = null; }
+
+/* ===================== vendas ===================== */
+function nextNota() {
+  const max = state.sales.reduce((a, s) => Math.max(a, Number(s.nota) || 0), 1000);
+  return max + 1;
+}
+
+function vendedoresConhecidos() {
+  const set = new Set(VENDEDORES_PADRAO);
+  state.sales.forEach(s => { if (s.vendedor) set.add(s.vendedor); });
+  return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+/** Agrega linhas do formulário (mesmo produto em mais de uma linha é somado). */
+function aggregateFormRows(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    if (!r.codigo) continue;
+    const atual = map.get(r.codigo) || { codigo: r.codigo, quantidade: 0 };
+    atual.quantidade += r.quantidade;
+    map.set(r.codigo, atual);
+  }
+  return [...map.values()];
+}
+
+function validateSale(input) {
+  const nota = input.nota, vendedor = input.vendedor, itensBrutos = input.itensBrutos;
+  const erros = [];
+  if (!nota || !Number.isInteger(nota) || nota <= 0) erros.push("Informe um número de nota fiscal válido.");
+  if (state.sales.some(s => Number(s.nota) === Number(nota))) erros.push("A nota fiscal " + nota + " já existe.");
+  if (!vendedor || !vendedor.trim()) erros.push("Selecione ou informe o vendedor.");
+  if (!itensBrutos.length) erros.push("Adicione ao menos um produto à venda.");
+
+  const agregados = aggregateFormRows(itensBrutos);
+  const itens = [];
+  for (const a of agregados) {
+    const prod = state.products.find(p => String(p.codigo) === String(a.codigo));
+    if (!prod) { erros.push("Produto de código " + a.codigo + " não encontrado."); continue; }
+    if (!Number.isInteger(a.quantidade) || a.quantidade <= 0) { erros.push("Quantidade inválida para " + prod.nome + "."); continue; }
+    if (a.quantidade > prod.quantidade) {
+      erros.push("Estoque insuficiente para " + prod.nome + ". Disponível: " + prod.quantidade + ", solicitado: " + a.quantidade + ".");
+      continue;
+    }
+    itens.push({ codigo: prod.codigo, nome: prod.nome, quantidade: a.quantidade, preco: prod.preco });
+  }
+  return { erros: erros, itens: itens };
+}
+
+function calculateSaleTotal(itens) {
+  return round2(itens.reduce((sum, i) => sum + i.quantidade * i.preco, 0));
+}
+
+function applyStockReduction(itens) {
+  for (const i of itens) {
+    const prod = state.products.find(p => String(p.codigo) === String(i.codigo));
+    prod.quantidade -= i.quantidade;
   }
 }
-async function saveProduct(p,editing=false){
-  if(state.mode==="firebase"){const b=writeBatch(db);b.set(doc(db,"produtos",String(p.codigo)),p);await b.commit();await loadFirestore()}
-  else{const i=state.products.findIndex(x=>String(x.codigo)===String(p.codigo));if(i>=0)state.products[i]=p;else state.products.push(p);saveLocal()}
-}
-async function saveDocData(d){
-  if(state.mode==="firebase"){const b=writeBatch(db);b.set(doc(db,"documentos",String(d.id)),d);await b.commit();await loadFirestore()}
-  else{const i=state.docs.findIndex(x=>String(x.id)===String(d.id));if(i>=0)state.docs[i]=d;else state.docs.push(d);saveLocal()}
-}
-async function deleteProduct(codigo){
-  if(state.mode==="firebase"){toast("Exclusão de produto não foi habilitada por segurança operacional. Edite para quantidade 0.");return}
-  state.products=state.products.filter(x=>String(x.codigo)!==String(codigo));saveLocal();render()
+
+function createSale(input) {
+  const nota = input.nota, vendedor = input.vendedor, itens = input.itens;
+  const valor = calculateSaleTotal(itens);
+  const sale = {
+    nota: Number(nota),
+    emissao: new Date().toISOString(),
+    vendedor: vendedor.trim(),
+    itens: itens,
+    totalProdutosTexto: generateProductsText(itens),
+    valor: valor,
+    historica: false
+  };
+  applyStockReduction(itens);
+  state.sales.push(sale);
+  return sale;
 }
 
-function kpis(){
-  const fatur=state.sales.reduce((a,x)=>a+Number(x.valor||0),0), qtd=state.sales.length, low=state.products.filter(p=>Number(p.quantidade)<=30).length;
-  return {fatur,qtd,low,ticket:qtd?fatur/qtd:0,items:state.products.reduce((a,p)=>a+Number(p.quantidade||0),0)};
-}
-function render(){switch(state.page){case"dashboard":renderDashboard();break;case"sales":renderSales();break;case"stock":renderStock();break;case"docs":renderDocs()}renderIcons();document.querySelectorAll(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.page===state.page));$("#pageTitle").textContent={dashboard:"Dashboard",sales:"Registro de Vendas",stock:"Gestão de Estoque",docs:"Controle Documental"}[state.page]}
-
-function renderDashboard(){
- const k=kpis();
- $("#main").innerHTML=`
- <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
- ${kpi("Faturamento Total",money(k.fatur),"trending-up","text-emerald-600")}
- ${kpi("Quantidade de Vendas",k.qtd,"shopping-cart","text-blue-600")}
- ${kpi("Estoque Baixo",k.low,"triangle-alert","text-amber-600")}
- ${kpi("Ticket Médio",money(k.ticket),"receipt","text-violet-600")}
- </div>
- <div class="mt-4 grid gap-4 xl:grid-cols-3">
-  <div class="card p-4 xl:col-span-2"><div class="mb-3 font-bold">Evolução do Faturamento</div><div class="h-72"><canvas id="salesEvolution"></canvas></div></div>
-  <div class="card p-4"><div class="mb-3 font-bold">Vendas por Vendedor</div><div class="h-72"><canvas id="sellerChart"></canvas></div></div>
- </div>
- <div class="mt-4 grid gap-4 xl:grid-cols-3">
-  <div class="card p-4"><div class="mb-3 font-bold">Produtos mais vendidos</div><div class="h-72"><canvas id="productChart"></canvas></div></div>
-  <div class="card p-4 xl:col-span-2"><div class="mb-3 flex items-center justify-between"><div class="font-bold">Últimas vendas</div><button class="btn btn-muted" data-go="sales">Ver todas</button></div>${salesTable(state.sales.slice().sort((a,b)=>new Date(b.emissao)-new Date(a.emissao)).slice(0,8))}</div>
- </div>`;
- document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{state.page=b.dataset.go;render()});
- drawCharts();
-}
-function kpi(title,val,icon,cls){return `<div class="card p-4"><div class="flex items-center justify-between"><span class="text-sm font-semibold text-slate-500">${title}</span><span class="${cls}"><i data-lucide="${icon}"></i></span></div><div class="mt-3 text-2xl font-extrabold">${val}</div></div>`}
-function destroyCharts(){Object.values(state.charts).forEach(c=>c?.destroy());state.charts={}}
-function drawCharts(){
- destroyCharts(); const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
- const sellers={};state.sales.forEach(s=>sellers[s.vendedor]=(sellers[s.vendedor]||0)+Number(s.valor||0));
- state.charts.seller=new Chart($("#sellerChart"),{type:"bar",data:{labels:Object.keys(sellers),datasets:[{data:Object.values(sellers),borderRadius:8}]},options:{...opts,scales:{y:{beginAtZero:true}}}});
- const months={};state.sales.forEach(s=>{const d=new Date(s.emissao),key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;months[key]=(months[key]||0)+Number(s.valor||0)});
- const labels=Object.keys(months).sort();
- state.charts.evo=new Chart($("#salesEvolution"),{type:"line",data:{labels,datasets:[{label:"Faturamento",data:labels.map(x=>months[x]),tension:.35,fill:true}]},options:{...opts,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
- const prod={};state.sales.forEach(s=>(s.itens||[]).forEach(i=>prod[i.nome]=(prod[i.nome]||0)+Number(i.quantidade||0)));
- let top=Object.entries(prod).sort((a,b)=>b[1]-a[1]).slice(0,8);
- if(!top.length) top=state.products.slice().sort((a,b)=>b.quantidade-a.quantidade).slice(0,8).map(p=>[p.nome,p.quantidade]);
- state.charts.product=new Chart($("#productChart"),{type:"doughnut",data:{labels:top.map(x=>x[0].slice(0,22)),datasets:[{data:top.map(x=>x[1])}]},options:{responsive:true,maintainAspectRatio:false}});
-}
-function salesTable(rows){return `<div class="overflow-auto scrollbar"><table class="table w-full text-sm"><thead><tr><th>Nota</th><th>Emissão</th><th>Vendedor</th><th class="text-right">Valor</th></tr></thead><tbody>${rows.map(s=>`<tr><td class="font-bold">#${esc(s.nota)}</td><td>${dateBR(s.emissao)}</td><td>${esc(s.vendedor)}</td><td class="text-right font-semibold">${money(s.valor)}</td></tr>`).join("")}</tbody></table></div>`}
-
-function renderSales(){
- const sellers=[...new Set(state.sales.map(s=>s.vendedor).filter(Boolean))].sort();
- $("#main").innerHTML=`
- <div class="grid gap-4 xl:grid-cols-3">
-  <div class="card p-5 xl:col-span-1">
-   <div class="mb-4"><h2 class="font-extrabold">Nova venda</h2><p class="text-xs text-slate-500">A confirmação abate o estoque de forma transacional.</p></div>
-   <form id="saleForm" class="space-y-3">
-    <div class="grid grid-cols-2 gap-3"><div><label class="mb-1 block text-xs font-bold">Nota Fiscal</label><input id="saleNota" class="field" type="number" required value="${nextNota()}"></div><div><label class="mb-1 block text-xs font-bold">Emissão</label><input id="saleDate" class="field" type="datetime-local" required value="${nowLocal()}"></div></div>
-    <div><label class="mb-1 block text-xs font-bold">Vendedor</label><select id="saleSeller" class="field">${(state.user?.email?[state.user.email]:sellers.length?sellers:["Vendedor"]).map(x=>`<option>${esc(x)}</option>`).join("")}</select></div>
-    <div id="saleItems"></div>
-    <button type="button" id="addItem" class="btn btn-muted w-full"><i data-lucide="plus"></i> Adicionar produto</button>
-    <div class="rounded-xl bg-slate-100 p-4 dark:bg-slate-800"><div class="flex justify-between text-sm"><span>Total</span><strong id="saleTotal">${money(0)}</strong></div></div>
-    <button class="btn btn-primary w-full" type="submit"><i data-lucide="check"></i> Confirmar venda</button>
-   </form>
-  </div>
-  <div class="card p-5 xl:col-span-2">
-   <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="font-extrabold">Histórico de vendas</h2><p class="text-xs text-slate-500">${state.sales.length} notas cadastradas</p></div><input id="saleSearch" class="field sm:max-w-xs" placeholder="Buscar nota ou vendedor..."></div>
-   <div id="salesList"></div>
-  </div>
- </div>`;
- addSaleItem();$("#addItem").onclick=addSaleItem;$("#saleForm").onsubmit=submitSale;$("#saleSearch").oninput=e=>renderSalesList(e.target.value);renderSalesList();renderIcons();
-}
-function nextNota(){return Math.max(1000,...state.sales.map(s=>Number(s.nota)||0))+1}
-function addSaleItem(){
- const wrap=$("#saleItems"), div=document.createElement("div");div.className="sale-item mb-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700";
- div.innerHTML=`<div class="grid grid-cols-[1fr_90px_auto] gap-2"><select class="product-select field">${state.products.map(p=>`<option value="${esc(p.codigo)}">${esc(p.codigo)} • ${esc(p.nome.slice(0,40))} — ${money(p.preco)}</option>`).join("")}</select><input class="qty field" type="number" min="1" value="1"><button type="button" class="remove-item btn btn-muted" title="Remover"><i data-lucide="trash-2"></i></button></div>`;
- div.querySelector(".remove-item").onclick=()=>{if(document.querySelectorAll(".sale-item").length>1)div.remove();calcSale()};
- div.querySelectorAll("select,input").forEach(x=>x.oninput=calcSale);wrap.appendChild(div);calcSale();renderIcons();
-}
-function calcSale(){let total=0;document.querySelectorAll(".sale-item").forEach(r=>{const p=state.products.find(x=>String(x.codigo)===r.querySelector(".product-select").value);total+=(p?.preco||0)*Number(r.querySelector(".qty").value||0)});$("#saleTotal").textContent=money(total);return total}
-async function submitSale(e){
- e.preventDefault();const items=[...document.querySelectorAll(".sale-item")].map(r=>{const p=state.products.find(x=>String(x.codigo)===r.querySelector(".product-select").value);return{codigo:p.codigo,nome:p.nome,quantidade:Number(r.querySelector(".qty").value),preco:Number(p.preco)}});const total=items.reduce((a,i)=>a+i.preco*i.quantidade,0);
- if(items.some(i=>!i.quantidade||i.quantidade<1))return toast("Informe quantidades válidas.","error");
- const sale={nota:Number($("#saleNota").value),emissao:new Date($("#saleDate").value).toISOString(),vendedor:$("#saleSeller").value,valor:total,itens,criadoPor:state.user?.email||"local"};
- try{await persistSale(sale,items);toast("Venda registrada e estoque atualizado.");render()}catch(err){console.error(err);toast(err.message||"Não foi possível registrar a venda.","error")}
-}
-function renderSalesList(term=""){const t=(term||"").toLowerCase();const rows=state.sales.slice().sort((a,b)=>new Date(b.emissao)-new Date(a.emissao)).filter(s=>String(s.nota).includes(t)||String(s.vendedor).toLowerCase().includes(t));$("#salesList").innerHTML=salesTable(rows)}
-function renderStock(){
- $("#main").innerHTML=`
- <div class="card p-5"><div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h2 class="font-extrabold">Produtos e estoque</h2><p class="text-xs text-slate-500">${state.products.length} produtos • ${kpis().items} itens físicos</p></div><button id="newProduct" class="btn btn-primary"><i data-lucide="plus"></i> Novo produto</button></div>
- <div class="mb-4"><input id="stockSearch" class="field max-w-lg" placeholder="Buscar por código ou nome..."></div><div id="stockList"></div></div>`;
- $("#newProduct").onclick=()=>productModal();$("#stockSearch").oninput=e=>renderStockList(e.target.value);renderStockList();renderIcons();
-}
-function renderStockList(term=""){const t=term.toLowerCase();const rows=state.products.filter(p=>String(p.codigo).includes(t)||p.nome.toLowerCase().includes(t));$("#stockList").innerHTML=`<div class="overflow-auto scrollbar"><table class="table w-full text-sm"><thead><tr><th>Código</th><th>Produto</th><th>Quantidade</th><th>Preço</th><th>Valor Total</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(p=>{const low=p.quantidade<=30;return `<tr><td class="font-bold">${p.codigo}</td><td>${esc(p.nome)}</td><td class="font-bold">${p.quantidade}</td><td>${money(p.preco)}</td><td>${money(p.quantidade*p.preco)}</td><td><span class="rounded-full px-2 py-1 text-xs font-bold ${low?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}">${low?"Baixo":"Normal"}</span></td><td><button class="edit-prod btn btn-muted" data-id="${p.codigo}"><i data-lucide="pencil"></i></button></td></tr>`}).join("")}</tbody></table></div>`;document.querySelectorAll(".edit-prod").forEach(b=>b.onclick=()=>productModal(state.products.find(p=>String(p.codigo)===b.dataset.id)));renderIcons()}
-function productModal(p=null){
- const modal=document.createElement("div");modal.className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";modal.innerHTML=`<div class="card w-full max-w-lg p-5"><div class="mb-4 flex justify-between"><h2 class="font-extrabold">${p?"Editar produto":"Novo produto"}</h2><button class="close btn btn-muted"><i data-lucide="x"></i></button></div><form class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-bold">Código</label><input id="pCode" class="field" type="number" required value="${p?.codigo??(Math.max(0,...state.products.map(x=>x.codigo))+1)}" ${p?"readonly":""}></div><div><label class="text-xs font-bold">Quantidade</label><input id="pQty" class="field" type="number" min="0" required value="${p?.quantidade??0}"></div></div><div><label class="text-xs font-bold">Nome</label><input id="pName" class="field" required value="${esc(p?.nome||"")}"></div><div><label class="text-xs font-bold">Preço unitário</label><input id="pPrice" class="field" type="number" min="0" step="0.01" required value="${p?.preco??0}"></div><button class="btn btn-primary w-full">Salvar</button></form></div>`;document.body.appendChild(modal);modal.querySelector(".close").onclick=()=>modal.remove();modal.querySelector("form").onsubmit=async e=>{e.preventDefault();const x={codigo:Number($("#pCode").value),nome:$("#pName").value.trim(),quantidade:Number($("#pQty").value),preco:Number($("#pPrice").value)};if(!x.nome)return;await saveProduct(x,!!p);modal.remove();toast("Produto salvo.");render()};renderIcons();
-}
-function renderDocs(){
- $("#main").innerHTML=`<div class="card p-5"><div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h2 class="font-extrabold">Documentação</h2><p class="text-xs text-slate-500">${state.docs.filter(d=>d.status==="Pendente").length} pendentes</p></div><button id="newDoc" class="btn btn-primary"><i data-lucide="plus"></i> Novo documento</button></div><div class="mb-4"><input id="docSearch" class="field max-w-lg" placeholder="Buscar documento, tipo ou status..."></div><div id="docList"></div></div>`;
- $("#newDoc").onclick=()=>docModal();$("#docSearch").oninput=e=>renderDocsList(e.target.value);renderDocsList();renderIcons();
-}
-function renderDocsList(term=""){const t=term.toLowerCase();const rows=state.docs.filter(d=>[d.id,d.nome,d.tipo,d.status].some(x=>String(x).toLowerCase().includes(t)));$("#docList").innerHTML=`<div class="overflow-auto scrollbar"><table class="table w-full text-sm"><thead><tr><th>ID</th><th>Documento</th><th>Tipo</th><th>Emissão</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(d=>`<tr><td class="font-bold">${d.id}</td><td>${esc(d.nome)}</td><td>${esc(d.tipo)}</td><td>${dateBR(d.emissao)}</td><td><select class="doc-status field max-w-40" data-id="${d.id}">${["Pendente","Aprovado","Arquivado","Concluído"].map(s=>`<option ${d.status===s?"selected":""}>${s}</option>`).join("")}</select></td><td><button class="edit-doc btn btn-muted" data-id="${d.id}"><i data-lucide="pencil"></i></button></td></tr>`).join("")}</tbody></table></div>`;document.querySelectorAll(".doc-status").forEach(s=>s.onchange=async()=>{const d=state.docs.find(x=>String(x.id)===s.dataset.id);d.status=s.value;await saveDocData(d);toast("Status atualizado.")});document.querySelectorAll(".edit-doc").forEach(b=>b.onclick=()=>docModal(state.docs.find(d=>String(d.id)===b.dataset.id)));renderIcons()}
-function docModal(d=null){
- const m=document.createElement("div");m.className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";m.innerHTML=`<div class="card w-full max-w-lg p-5"><div class="mb-4 flex justify-between"><h2 class="font-extrabold">${d?"Editar documento":"Novo documento"}</h2><button class="close btn btn-muted"><i data-lucide="x"></i></button></div><form class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-bold">ID Doc</label><input id="dId" class="field" type="number" required value="${d?.id??(Math.max(0,...state.docs.map(x=>x.id))+1)}" ${d?"readonly":""}></div><div><label class="text-xs font-bold">Data de emissão</label><input id="dDate" class="field" type="date" required value="${d?.emissao||new Date().toISOString().slice(0,10)}"></div></div><div><label class="text-xs font-bold">Nome do documento</label><input id="dName" class="field" required value="${esc(d?.nome||"")}"></div><div><label class="text-xs font-bold">Tipo</label><input id="dType" class="field" required value="${esc(d?.tipo||"")}"></div><div><label class="text-xs font-bold">Status</label><select id="dStatus" class="field">${["Pendente","Aprovado","Arquivado","Concluído"].map(s=>`<option ${d?.status===s?"selected":""}>${s}</option>`).join("")}</select></div><button class="btn btn-primary w-full">Salvar</button></form></div>`;document.body.appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("form").onsubmit=async e=>{e.preventDefault();await saveDocData({id:Number($("#dId").value),nome:$("#dName").value.trim(),tipo:$("#dType").value.trim(),emissao:$("#dDate").value,status:$("#dStatus").value});m.remove();toast("Documento salvo.");render()};renderIcons()
+function findSaleByNumber(nota) {
+  return state.sales.find(s => String(s.nota) === String(nota).trim());
 }
 
-function exportXLSX(){
- const fatur=state.sales.reduce((a,x)=>a+Number(x.valor||0),0), low=state.products.filter(p=>p.quantidade<=30).length, totalItems=state.products.reduce((a,p)=>a+p.quantidade,0), pend=state.docs.filter(d=>d.status==="Pendente").length;
- const menu=[["PAINÉIS E INDICADORES ADMINISTRATIVOS"],[],["Indicador","Valor"],["Faturamento Total",fatur],["Quantidade de Vendas",state.sales.length],["Total de Itens em Estoque",totalItems],["Itens em Estoque Baixo",low],["Ticket Médio",state.sales.length?fatur/state.sales.length:0],["Documentos Pendentes",pend]];
- const fin=[["CONTROLE FINANCEIRO"],[],["Nota","Emissão","Vendedor","Valor"],...state.sales.map(s=>[s.nota,new Date(s.emissao),s.vendedor,s.valor])];
- const est=[["CONTROLE DE ESTOQUE"],[],["Cód Produto","Nome do Produto","Quantidade","Preço Unitário","Valor Total"],...state.products.map(p=>[p.codigo,p.nome,p.quantidade,p.preco,p.quantidade*p.preco])];
- const doc=[["CONTROLE DOCUMENTAL"],[],["ID Doc","Nome do Documento","Tipo","Data de Emissão","Status"],...state.docs.map(d=>[d.id,d.nome,d.tipo,new Date(d.emissao),d.status])];
- const wb2=XLSX.utils.book_new();[["MENU",menu],["Financeiro",fin],["Estoque",est],["Documentação",doc]].forEach(([n,a])=>{const ws=XLSX.utils.aoa_to_sheet(a);ws["!cols"]=a[0].map(()=>({wch:24}));XLSX.utils.book_append_sheet(wb2,ws,n)});
- XLSX.writeFile(wb2,"projeto_erp.xlsx");toast("XLSX exportado com 4 abas.")
+/* ===================== produtos ===================== */
+function saveProduct(p, isEditing) {
+  const codigo = Number(p.codigo);
+  if (!codigo || codigo <= 0) return { ok: false, error: "Código inválido." };
+  if (!p.nome || !p.nome.trim()) return { ok: false, error: "Informe o nome do produto." };
+  if (!(p.quantidade >= 0) || !Number.isInteger(p.quantidade)) return { ok: false, error: "Quantidade inválida." };
+  if (!(p.preco >= 0)) return { ok: false, error: "Preço inválido." };
+  const existente = state.products.find(x => x.codigo === codigo);
+  if (existente && !isEditing) return { ok: false, error: "Já existe um produto com o código " + codigo + "." };
+  if (existente) Object.assign(existente, { nome: p.nome.trim(), quantidade: p.quantidade, preco: round2(p.preco) });
+  else state.products.push({ codigo: codigo, nome: p.nome.trim(), quantidade: p.quantidade, preco: round2(p.preco) });
+  return { ok: true };
 }
 
-async function login(e){
- e.preventDefault();const email=$("#loginEmail").value.trim(),pass=$("#loginPassword").value;
- if(state.mode==="firebase"){try{await signInWithEmailAndPassword(auth,email,pass)}catch(err){toast("Falha no login: "+err.message,"error")}}
- else{state.user={email};$("#loginScreen").classList.add("hidden");$("#app").classList.remove("hidden");$("#userName").textContent=email;render()}
+/* ===================== documentos ===================== */
+function saveDoc(d, isEditing) {
+  const id = Number(d.id);
+  if (!id || id <= 0) return { ok: false, error: "ID inválido." };
+  if (!d.nome || !d.nome.trim()) return { ok: false, error: "Informe o nome do documento." };
+  const existente = state.docs.find(x => x.id === id);
+  if (existente && !isEditing) return { ok: false, error: "Já existe um documento com o ID " + id + "." };
+  if (existente) Object.assign(existente, { nome: d.nome.trim(), tipo: d.tipo.trim(), emissao: d.emissao, status: d.status });
+  else state.docs.push({ id: id, nome: d.nome.trim(), tipo: d.tipo.trim(), emissao: d.emissao, status: d.status });
+  return { ok: true };
 }
-async function logout(){if(state.mode==="firebase")await signOut(auth);else{state.user=null;$("#app").classList.add("hidden");$("#loginScreen").classList.remove("hidden");$("#loginScreen").classList.add("flex")}}
-async function populate(){
- if(state.mode==="firebase"){await seedFirebase()}else{state.products=structuredClone(MOCK.products);state.sales=structuredClone(MOCK.sales).map(s=>({...s,itens:[]}));state.docs=structuredClone(MOCK.docs);saveLocal();render();toast("Dados de exemplo restaurados.")}
+
+/* ===================== indicadores ===================== */
+function kpis() {
+  const fatur = state.sales.reduce((a, x) => a + Number(x.valor || 0), 0);
+  const qtd = state.sales.length;
+  const low = state.products.filter(p => Number(p.quantidade) <= LOW_STOCK_THRESHOLD).length;
+  const items = state.products.reduce((a, p) => a + Number(p.quantidade || 0), 0);
+  const pend = state.docs.filter(d => d.status === "Pendente").length;
+  return { fatur: fatur, qtd: qtd, low: low, ticket: qtd ? fatur / qtd : 0, items: items, pend: pend };
 }
-$("#loginForm").onsubmit=login;$("#logoutBtn").onclick=logout;$("#seedBtn").onclick=populate;$("#exportBtnSide").onclick=exportXLSX;
-document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>{state.page=b.dataset.page;$("#sidebar").classList.add("-translate-x-full");render()});
-$("#menuBtn").onclick=()=>$("#sidebar").classList.toggle("-translate-x-full");
-$("#themeBtn").onclick=()=>{document.documentElement.classList.toggle("dark");localStorage.setItem("erp_dark",document.documentElement.classList.contains("dark")?"1":"0")};
-if(localStorage.getItem("erp_dark")==="1")document.documentElement.classList.add("dark");
-init();
+
+function produtosMaisVendidos(sales, limit) {
+  limit = limit || 8;
+  const acc = new Map();
+  sales.forEach(s => (s.itens || []).forEach(i => acc.set(i.nome, (acc.get(i.nome) || 0) + Number(i.quantidade || 0))));
+  return [...acc.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+
+/* ===================== fechamento mensal ===================== */
+function salesInMonth(monthStr) {
+  const parts = monthStr.split("-").map(Number);
+  const y = parts[0], m = parts[1];
+  const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+  const end = new Date(y, m, 0, 23, 59, 59, 999);
+  return state.sales
+    .filter(s => { const d = new Date(s.emissao); return d >= start && d <= end; })
+    .sort((a, b) => new Date(a.emissao) - new Date(b.emissao));
+}
+
+function monthLabel(monthStr) {
+  const parts = monthStr.split("-").map(Number);
+  const y = parts[0], m = parts[1];
+  const nome = MESES_PT[m - 1];
+  return nome.charAt(0).toUpperCase() + nome.slice(1) + "/" + y;
+}
+function monthFileTag(monthStr) {
+  const parts = monthStr.split("-").map(Number);
+  const y = parts[0], m = parts[1];
+  return MESES_PT[m - 1] + "_" + y;
+}
+
+</script>
+<script>
+/* ===================== Exportação XLSX estilizada (ExcelJS) — fechamento mensal ===================== */
+
+const COR_TITULO = "FF2B4C6F";
+const COR_HEADER_BG = "FF304C6F";
+const COR_HEADER_TXT = "FFFFFFFF";
+const FONTE = "Arial";
+const FMT_MOEDA = '"R$" #,##0.00';
+const FMT_DATA = "dd/mm/yyyy";
+const FMT_DATAHORA = "dd/mm/yyyy hh:mm";
+
+function thinBorder() {
+  return { top: { style: "thin", color: { argb: "FFCBD5E1" } }, left: { style: "thin", color: { argb: "FFCBD5E1" } }, bottom: { style: "thin", color: { argb: "FFCBD5E1" } }, right: { style: "thin", color: { argb: "FFCBD5E1" } } };
+}
+function doubleTopBorder() {
+  return { top: { style: "double", color: { argb: "FF2B4C6F" } } };
+}
+
+function styleTitle(ws, ref, text) {
+  ws.mergeCells(ref);
+  const cell = ws.getCell(ref.split(":")[0]);
+  cell.value = text;
+  cell.font = { name: FONTE, size: 16, bold: true, color: { argb: COR_TITULO } };
+  cell.alignment = { vertical: "center", horizontal: "left" };
+}
+
+function styleHeaderRow(ws, row, cols) {
+  cols.forEach((label, idx) => {
+    const cell = row.getCell(idx + 1);
+    cell.value = label;
+    cell.font = { name: FONTE, size: 11, bold: true, color: { argb: COR_HEADER_TXT } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_HEADER_BG } };
+    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+  });
+  row.commit();
+}
+
+function buildMenuSheet(wb, ctx) {
+  const ws = wb.addWorksheet("MENU", { views: [{ showGridLines: false }] });
+  ws.columns = [{ width: 3 }, { width: 32 }, { width: 22 }];
+  styleTitle(ws, "B2:C2", "FECHAMENTO — " + ctx.label);
+  ws.getCell("B3").value = "Período: " + ctx.periodoTexto;
+  ws.getCell("B3").font = { name: FONTE, size: 10, italic: true, color: { argb: "FF64748B" } };
+
+  const headerRow = ws.getRow(5);
+  styleHeaderRow(ws, headerRow, ["", ""]);
+  ws.getCell("B5").value = "Indicador";
+  ws.getCell("C5").value = "Valor";
+
+  const linhas = [
+    ["Faturamento do período", ctx.fatur, FMT_MOEDA],
+    ["Quantidade de vendas", ctx.qtd, "#,##0"],
+    ["Ticket médio", ctx.ticket, FMT_MOEDA],
+    ["Total de itens vendidos", ctx.totalItensVendidos, "#,##0"],
+    ["Produtos com estoque baixo (≤ " + LOW_STOCK_THRESHOLD + ")", ctx.low, "#,##0"]
+  ];
+  linhas.forEach((linha, i) => {
+    const r = ws.getRow(6 + i);
+    r.getCell(2).value = linha[0];
+    r.getCell(2).font = { name: FONTE, size: 11, color: { argb: "FF334155" } };
+    r.getCell(3).value = linha[1];
+    r.getCell(3).numFmt = linha[2];
+    r.getCell(3).font = { name: FONTE, size: 12, bold: true, color: { argb: COR_TITULO } };
+    r.getCell(2).border = thinBorder();
+    r.getCell(3).border = thinBorder();
+  });
+}
+
+function buildFinanceiroSheet(wb, ctx) {
+  const ws = wb.addWorksheet("Financeiro", { views: [{ showGridLines: false }] });
+  ws.columns = [{ width: 3 }, { width: 12 }, { width: 20 }, { width: 16 }, { width: 60 }, { width: 16 }, { width: 3 }, { width: 22 }, { width: 14 } ];
+  styleTitle(ws, "B2:F2", "CONTROLE FINANCEIRO — Fechamento " + ctx.label);
+
+  const headerRow = ws.getRow(4);
+  styleHeaderRow(ws, headerRow, ["", "", "", "", ""]);
+  ws.getCell("B4").value = "Nota";
+  ws.getCell("C4").value = "Emissão";
+  ws.getCell("D4").value = "Vendedor";
+  ws.getCell("E4").value = "Total produtos:";
+  ws.getCell("F4").value = "Valor";
+
+  let r = 5;
+  ctx.sales.forEach(s => {
+    const row = ws.getRow(r);
+    row.getCell(2).value = s.nota;
+    row.getCell(3).value = new Date(s.emissao);
+    row.getCell(3).numFmt = FMT_DATAHORA;
+    row.getCell(4).value = s.vendedor;
+    row.getCell(5).value = s.totalProdutosTexto;
+    row.getCell(6).value = s.valor;
+    row.getCell(6).numFmt = FMT_MOEDA;
+    for (let c = 2; c <= 6; c++) {
+      row.getCell(c).font = { name: FONTE, size: 10 };
+      row.getCell(c).border = thinBorder();
+      row.getCell(c).alignment = { vertical: "top", wrapText: c === 5 };
+    }
+    row.getCell(2).alignment = { horizontal: "center" };
+    r++;
+  });
+  const totalRow = ws.getRow(r);
+  ws.mergeCells("B" + r + ":E" + r);
+  totalRow.getCell(2).value = "Total do período:";
+  totalRow.getCell(2).font = { name: FONTE, size: 11, bold: true };
+  totalRow.getCell(2).border = doubleTopBorder();
+  totalRow.getCell(6).value = { formula: "SUM(F5:F" + (r - 1) + ")", result: ctx.fatur };
+  totalRow.getCell(6).numFmt = FMT_MOEDA;
+  totalRow.getCell(6).font = { name: FONTE, size: 11, bold: true, color: { argb: COR_TITULO } };
+  totalRow.getCell(6).border = doubleTopBorder();
+
+  // Painel "Consultar Nota Fiscal" (referência visual da planilha original)
+  ws.mergeCells("H2:I2");
+  ws.getCell("H2").value = "CONSULTAR NOTA FISCAL:";
+  ws.getCell("H2").font = { name: FONTE, size: 13, bold: true, color: { argb: COR_TITULO } };
+  ws.getCell("H4").value = "Número da nota:";
+  ws.getCell("H4").font = { name: FONTE, size: 10, bold: true };
+  const exemplo = ctx.sales[0];
+  if (exemplo) {
+    ws.getCell("I4").value = exemplo.nota;
+    ws.getCell("I4").alignment = { horizontal: "center" };
+    ["H5", "I5", "J5"].forEach((c, idx) => {
+      ws.getCell(c).value = ["Emissão", "Vendedor", "Valor"][idx];
+      ws.getCell(c).font = { name: FONTE, size: 10, bold: true, color: { argb: COR_HEADER_TXT } };
+      ws.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_HEADER_BG } };
+      ws.getCell(c).alignment = { horizontal: "center" };
+    });
+    ws.getCell("H6").value = new Date(exemplo.emissao);
+    ws.getCell("H6").numFmt = FMT_DATAHORA;
+    ws.getCell("I6").value = exemplo.vendedor;
+    ws.getCell("J6").value = exemplo.valor;
+    ws.getCell("J6").numFmt = FMT_MOEDA;
+    ["H4", "I4", "H6", "I6", "J6"].forEach(c => ws.getCell(c).border = thinBorder());
+  }
+}
+
+function buildEstoqueSheet(wb, ctx) {
+  const ws = wb.addWorksheet("Estoque", { views: [{ showGridLines: false }] });
+  ws.columns = [{ width: 3 }, { width: 14 }, { width: 55 }, { width: 14 }, { width: 16 }, { width: 16 }];
+  styleTitle(ws, "B2:C2", "CONTROLE DE ESTOQUE — situação em " + ctx.geradoEm);
+
+  const headerRow = ws.getRow(4);
+  styleHeaderRow(ws, headerRow, ["", "", "", "", ""]);
+  ws.getCell("B4").value = "Cód Produto";
+  ws.getCell("C4").value = "Nome do Produto";
+  ws.getCell("D4").value = "Quantidade";
+  ws.getCell("E4").value = "Preço Unitário";
+  ws.getCell("F4").value = "Valor Total";
+
+  const produtosOrdenados = ctx.products.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  let r = 5;
+  produtosOrdenados.forEach(p => {
+    const row = ws.getRow(r);
+    row.getCell(2).value = p.codigo;
+    row.getCell(3).value = p.nome;
+    row.getCell(4).value = p.quantidade;
+    row.getCell(5).value = p.preco;
+    row.getCell(5).numFmt = FMT_MOEDA;
+    row.getCell(6).value = { formula: "D" + r + "*E" + r, result: round2(p.quantidade * p.preco) };
+    row.getCell(6).numFmt = FMT_MOEDA;
+    for (let c = 2; c <= 6; c++) { row.getCell(c).font = { name: FONTE, size: 10 }; row.getCell(c).border = thinBorder(); }
+    row.getCell(2).alignment = { horizontal: "center" };
+    row.getCell(4).alignment = { horizontal: "center" };
+    if (p.quantidade <= LOW_STOCK_THRESHOLD) row.getCell(4).font = { name: FONTE, size: 10, bold: true, color: { argb: "FFB45309" } };
+    r++;
+  });
+  const totalRow = ws.getRow(r);
+  totalRow.getCell(2).value = "Total Geral em Estoque";
+  totalRow.getCell(2).font = { name: FONTE, size: 11, bold: true };
+  totalRow.getCell(4).value = { formula: "SUM(D5:D" + (r - 1) + ")", result: ctx.products.reduce((a, p) => a + p.quantidade, 0) };
+  totalRow.getCell(6).value = { formula: "SUM(F5:F" + (r - 1) + ")", result: round2(ctx.products.reduce((a, p) => a + p.quantidade * p.preco, 0)) };
+  totalRow.getCell(6).numFmt = FMT_MOEDA;
+  [2, 4, 6].forEach(c => { totalRow.getCell(c).border = doubleTopBorder(); totalRow.getCell(c).font = { name: FONTE, size: 11, bold: true, color: { argb: COR_TITULO } }; });
+}
+
+function buildDocumentacaoSheet(wb, ctx) {
+  const ws = wb.addWorksheet("Documentação", { views: [{ showGridLines: false }] });
+  ws.columns = [{ width: 3 }, { width: 10 }, { width: 42 }, { width: 24 }, { width: 16 }, { width: 16 }];
+  styleTitle(ws, "B2:C2", "CONTROLE DOCUMENTAL — situação em " + ctx.geradoEm);
+
+  const headerRow = ws.getRow(4);
+  styleHeaderRow(ws, headerRow, ["", "", "", "", ""]);
+  ws.getCell("B4").value = "ID Doc";
+  ws.getCell("C4").value = "Nome do Documento";
+  ws.getCell("D4").value = "Tipo";
+  ws.getCell("E4").value = "Data de Emissão";
+  ws.getCell("F4").value = "Status";
+
+  let r = 5;
+  ctx.docs.forEach(d => {
+    const row = ws.getRow(r);
+    row.getCell(2).value = d.id;
+    row.getCell(3).value = d.nome;
+    row.getCell(4).value = d.tipo;
+    row.getCell(5).value = new Date(d.emissao);
+    row.getCell(5).numFmt = FMT_DATA;
+    row.getCell(6).value = d.status;
+    for (let c = 2; c <= 6; c++) { row.getCell(c).font = { name: FONTE, size: 10 }; row.getCell(c).border = thinBorder(); row.getCell(c).alignment = { horizontal: c === 3 ? "left" : "center" }; }
+    r++;
+  });
+}
+
+async function exportStyledWorkbook(monthStr) {
+  const salesPeriodo = salesInMonth(monthStr);
+  if (!salesPeriodo.length) {
+    toast("Não é possível gerar o fechamento: não há vendas registradas em " + monthLabel(monthStr) + ".", "error");
+    return false;
+  }
+  const label = monthLabel(monthStr);
+  const [y, m] = monthStr.split("-").map(Number);
+  const start = new Date(y, m - 1, 1);
+  const end = new Date(y, m, 0);
+  const fatur = round2(salesPeriodo.reduce((a, s) => a + s.valor, 0));
+  const totalItensVendidos = salesPeriodo.reduce((a, s) => a + s.itens.reduce((x, i) => x + i.quantidade, 0), 0);
+  const low = state.products.filter(p => p.quantidade <= LOW_STOCK_THRESHOLD).length;
+
+  const ctx = {
+    label: label,
+    periodoTexto: dateBR(start) + " — " + dateBR(end),
+    geradoEm: dateTimeBR(new Date()),
+    sales: salesPeriodo,
+    products: state.products,
+    docs: state.docs,
+    fatur: fatur,
+    qtd: salesPeriodo.length,
+    ticket: round2(fatur / salesPeriodo.length),
+    totalItensVendidos: totalItensVendidos,
+    low: low
+  };
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "ERP Gestão Comercial";
+  wb.created = new Date();
+  buildMenuSheet(wb, ctx);
+  buildFinanceiroSheet(wb, ctx);
+  buildEstoqueSheet(wb, ctx);
+  buildDocumentacaoSheet(wb, ctx);
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "fechamento_" + monthFileTag(monthStr) + ".xlsx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("Fechamento de " + label + " gerado com sucesso.");
+  return true;
+}
+
+</script>
+<script>
+/* ===================== UI: telas, modais, gráficos, eventos ===================== */
+
+function showApp() {
+  $("#loginScreen").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#userName").textContent = state.user ? state.user.nome : "Usuário";
+}
+function showLogin() {
+  $("#app").classList.add("hidden");
+  $("#loginScreen").classList.remove("hidden");
+  $("#loginScreen").classList.add("flex");
+  $("#loginPassword").value = "";
+}
+
+function render() {
+  switch (state.page) {
+    case "dashboard": renderDashboard(); break;
+    case "sales": renderSales(); break;
+    case "stock": renderStock(); break;
+    case "docs": renderDocs(); break;
+  }
+  renderIcons();
+  document.querySelectorAll(".nav-item").forEach(x => x.classList.toggle("active", x.dataset.page === state.page));
+  $("#pageTitle").textContent = { dashboard: "Dashboard", sales: "Registro de Vendas", stock: "Gestão de Estoque", docs: "Controle Documental" }[state.page];
+}
+
+/* ---------------- Dashboard ---------------- */
+function kpiCard(title, val, icon, cls) {
+  return '<div class="card p-4"><div class="flex items-center justify-between"><span class="text-sm font-semibold text-slate-500">' + title + '</span><span class="' + cls + '"><i data-lucide="' + icon + '"></i></span></div><div class="mt-3 text-2xl font-extrabold">' + val + "</div></div>";
+}
+function destroyCharts() { Object.values(state.charts).forEach(c => c && c.destroy()); state.charts = {}; }
+
+function renderDashboard() {
+  const k = kpis();
+  $("#main").innerHTML =
+    '<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">' +
+    kpiCard("Faturamento Total", money(k.fatur), "trending-up", "text-emerald-600") +
+    kpiCard("Quantidade de Vendas", k.qtd, "shopping-cart", "text-blue-600") +
+    kpiCard("Estoque Baixo", k.low, "triangle-alert", "text-amber-600") +
+    kpiCard("Ticket Médio", money(k.ticket), "receipt", "text-violet-600") +
+    "</div>" +
+    '<div class="mt-4 grid gap-4 xl:grid-cols-3">' +
+    '<div class="card p-4 xl:col-span-2"><div class="mb-3 font-bold">Evolução do Faturamento</div><div class="h-72"><canvas id="salesEvolution"></canvas></div></div>' +
+    '<div class="card p-4"><div class="mb-3 font-bold">Vendas por Vendedor</div><div class="h-72"><canvas id="sellerChart"></canvas></div></div>' +
+    "</div>" +
+    '<div class="mt-4 grid gap-4 xl:grid-cols-3">' +
+    '<div class="card p-4"><div class="mb-3 font-bold">Produtos mais vendidos</div><div class="h-72"><canvas id="productChart"></canvas></div></div>' +
+    '<div class="card p-4 xl:col-span-2"><div class="mb-3 flex items-center justify-between"><div class="font-bold">Últimas vendas</div><button class="btn btn-muted" data-go="sales">Ver todas</button></div>' +
+    salesTable(state.sales.slice().sort((a, b) => new Date(b.emissao) - new Date(a.emissao)).slice(0, 8)) +
+    "</div></div>";
+  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { state.page = b.dataset.go; render(); });
+  drawCharts();
+}
+
+function drawCharts() {
+  destroyCharts();
+  const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+  const sellers = {};
+  state.sales.forEach(s => sellers[s.vendedor] = (sellers[s.vendedor] || 0) + Number(s.valor || 0));
+  state.charts.seller = new Chart($("#sellerChart"), { type: "bar", data: { labels: Object.keys(sellers), datasets: [{ data: Object.values(sellers), borderRadius: 8, backgroundColor: "#2563eb" }] }, options: Object.assign({}, opts, { scales: { y: { beginAtZero: true } } }) });
+
+  const months = {};
+  state.sales.forEach(s => { const d = new Date(s.emissao), key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); months[key] = (months[key] || 0) + Number(s.valor || 0); });
+  const labels = Object.keys(months).sort();
+  state.charts.evo = new Chart($("#salesEvolution"), { type: "line", data: { labels: labels, datasets: [{ label: "Faturamento", data: labels.map(x => months[x]), tension: .35, fill: true, borderColor: "#2563eb", backgroundColor: "rgba(37,99,235,.12)" }] }, options: Object.assign({}, opts, { scales: { y: { beginAtZero: true } } }) });
+
+  let top = produtosMaisVendidos(state.sales, 8);
+  if (!top.length) top = state.products.slice().sort((a, b) => b.quantidade - a.quantidade).slice(0, 8).map(p => [p.nome, p.quantidade]);
+  state.charts.product = new Chart($("#productChart"), { type: "doughnut", data: { labels: top.map(x => shortName(x[0]).slice(0, 26)), datasets: [{ data: top.map(x => x[1]) }] }, options: { responsive: true, maintainAspectRatio: false } });
+}
+
+function salesTable(rows) {
+  return '<div class="overflow-auto scrollbar"><table class="table w-full text-sm"><thead><tr><th>Nota</th><th>Emissão</th><th>Vendedor</th><th class="text-right">Valor</th></tr></thead><tbody>' +
+    rows.map(s => '<tr class="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" data-nota="' + esc(s.nota) + '"><td class="font-bold">#' + esc(s.nota) + "</td><td>" + dateTimeBR(s.emissao) + "</td><td>" + esc(s.vendedor) + '</td><td class="text-right font-semibold">' + money(s.valor) + "</td></tr>").join("") +
+    "</tbody></table></div>";
+}
+
+/* ---------------- Registro de Vendas ---------------- */
+function renderSales() {
+  const vendedores = vendedoresConhecidos();
+  $("#main").innerHTML =
+    '<div class="grid gap-4 xl:grid-cols-3">' +
+    '<div class="card p-5 xl:col-span-1">' +
+    '<div class="mb-4"><h2 class="font-extrabold">Nova nota fiscal</h2><p class="text-xs text-slate-500">A confirmação abate o estoque imediatamente. A emissão é registrada no momento da confirmação.</p></div>' +
+    '<form id="saleForm" class="space-y-3">' +
+    '<div class="grid grid-cols-2 gap-3">' +
+    '<div><label class="mb-1 block text-xs font-bold">Nº da Nota</label><input id="saleNota" class="field" type="number" min="1" required value="' + nextNota() + '"></div>' +
+    '<div><label class="mb-1 block text-xs font-bold">Emissão</label><div class="field flex items-center gap-2 bg-slate-100 text-slate-500 dark:bg-slate-800"><i data-lucide="clock" class="h-4 w-4"></i> Agora</div></div>' +
+    "</div>" +
+    '<div><label class="mb-1 block text-xs font-bold">Vendedor</label><select id="saleSeller" class="field">' +
+    vendedores.map(v => "<option>" + esc(v) + "</option>").join("") +
+    '<option value="__outro__">+ Outro (digitar)</option></select>' +
+    '<input id="saleSellerOther" class="field mt-2 hidden" placeholder="Nome do vendedor"></div>' +
+    '<div id="saleItems"></div>' +
+    '<button type="button" id="addItem" class="btn btn-muted w-full"><i data-lucide="plus"></i> Adicionar produto</button>' +
+    '<div class="rounded-xl bg-slate-100 p-4 dark:bg-slate-800"><div class="flex justify-between text-sm"><span>Total</span><strong id="saleTotal">' + money(0) + "</strong></div></div>" +
+    '<button class="btn btn-primary w-full" type="submit"><i data-lucide="check"></i> Confirmar venda</button>' +
+    "</form>" +
+    "</div>" +
+    '<div class="xl:col-span-2 space-y-4">' +
+    '<div class="card p-5">' +
+    '<div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><h2 class="font-extrabold">Consultar nota fiscal</h2></div>' +
+    '<form id="consultaForm" class="flex gap-2"><input id="consultaNota" class="field" type="number" placeholder="Número da nota, ex: 1056" required><button class="btn btn-primary" type="submit"><i data-lucide="search" class="h-4 w-4"></i> Buscar</button></form>' +
+    '<div id="consultaResult" class="mt-3"></div>' +
+    "</div>" +
+    '<div class="card p-5">' +
+    '<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="font-extrabold">Histórico de vendas</h2><p class="text-xs text-slate-500">' + state.sales.length + ' notas cadastradas nesta sessão</p></div><input id="saleSearch" class="field sm:max-w-xs" placeholder="Buscar nota ou vendedor..."></div>' +
+    '<div id="salesList"></div>' +
+    "</div></div></div>";
+
+  addSaleItem();
+  $("#addItem").onclick = addSaleItem;
+  $("#saleForm").onsubmit = onSubmitSaleForm;
+  $("#saleSeller").onchange = () => $("#saleSellerOther").classList.toggle("hidden", $("#saleSeller").value !== "__outro__");
+  $("#saleSearch").oninput = e => renderSalesList(e.target.value);
+  $("#consultaForm").onsubmit = onSubmitConsulta;
+  renderSalesList();
+  renderIcons();
+}
+
+function nomeVendedorSelecionado() {
+  const sel = $("#saleSeller").value;
+  return sel === "__outro__" ? $("#saleSellerOther").value.trim() : sel;
+}
+
+function addSaleItem() {
+  const wrap = $("#saleItems"), div = document.createElement("div");
+  div.className = "sale-item mb-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700";
+  div.innerHTML = '<div class="grid grid-cols-[1fr_90px_auto] gap-2">' +
+    '<select class="product-select field">' + state.products.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(p => '<option value="' + esc(p.codigo) + '">' + esc(p.codigo) + " • " + esc(p.nome.slice(0, 42)) + " — " + money(p.preco) + "</option>").join("") + "</select>" +
+    '<input class="qty field" type="number" min="1" step="1" value="1">' +
+    '<button type="button" class="remove-item btn btn-muted" title="Remover"><i data-lucide="trash-2"></i></button>' +
+    "</div>";
+  div.querySelector(".remove-item").onclick = () => { if (document.querySelectorAll(".sale-item").length > 1) div.remove(); calcSaleForm(); };
+  div.querySelectorAll("select,input").forEach(x => x.oninput = calcSaleForm);
+  wrap.appendChild(div);
+  calcSaleForm();
+  renderIcons();
+}
+
+function readSaleFormRows() {
+  return [...document.querySelectorAll(".sale-item")].map(r => ({
+    codigo: r.querySelector(".product-select").value,
+    quantidade: parseInt(r.querySelector(".qty").value, 10) || 0
+  }));
+}
+
+function calcSaleForm() {
+  let total = 0;
+  document.querySelectorAll(".sale-item").forEach(r => {
+    const p = state.products.find(x => String(x.codigo) === r.querySelector(".product-select").value);
+    total += (p ? p.preco : 0) * (parseInt(r.querySelector(".qty").value, 10) || 0);
+  });
+  $("#saleTotal").textContent = money(round2(total));
+  return total;
+}
+
+function onSubmitSaleForm(e) {
+  e.preventDefault();
+  const nota = parseInt($("#saleNota").value, 10);
+  const vendedor = nomeVendedorSelecionado();
+  const itensBrutos = readSaleFormRows();
+  const { erros, itens } = validateSale({ nota, vendedor, itensBrutos });
+  if (erros.length) { toast(erros[0], "error"); return; }
+  openConfirmSaleModal({ nota, vendedor, itens });
+}
+
+function openConfirmSaleModal(draft) {
+  const total = calculateSaleTotal(draft.itens);
+  const totalUnid = draft.itens.reduce((a, i) => a + i.quantidade, 0);
+  const m = document.createElement("div");
+  m.className = "fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";
+  m.innerHTML = '<div class="card w-full max-w-md p-5">' +
+    '<div class="mb-4 flex justify-between"><h2 class="font-extrabold">Confirmar venda</h2><button class="close btn btn-muted"><i data-lucide="x"></i></button></div>' +
+    '<div class="space-y-2 text-sm">' +
+    '<div class="flex justify-between"><span class="text-slate-500">Nota fiscal</span><strong>#' + draft.nota + "</strong></div>" +
+    '<div class="flex justify-between"><span class="text-slate-500">Vendedor</span><strong>' + esc(draft.vendedor) + "</strong></div>" +
+    '<div class="flex justify-between"><span class="text-slate-500">Itens</span><strong>' + draft.itens.length + " produto(s), " + totalUnid + " unidade(s)</strong></div>" +
+    '<div class="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700">' +
+    draft.itens.map(i => '<div class="flex justify-between p-2"><span>' + i.quantidade + "x " + esc(shortName(i.nome)) + "</span><span>" + money(i.quantidade * i.preco) + "</span></div>").join("") +
+    "</div>" +
+    '<div class="flex justify-between text-base font-extrabold pt-1"><span>Total</span><span>' + money(total) + "</span></div>" +
+    '<p class="text-xs text-slate-500">Ao confirmar, o estoque será atualizado imediatamente.</p>' +
+    "</div>" +
+    '<button id="confirmSaleBtn" class="btn btn-primary mt-4 w-full"><i data-lucide="check"></i> Confirmar venda</button>' +
+    "</div>";
+  document.body.appendChild(m);
+  m.querySelector(".close").onclick = () => m.remove();
+  m.querySelector("#confirmSaleBtn").onclick = () => {
+    const sale = createSale(draft);
+    m.remove();
+    toast("Venda registrada com sucesso. Estoque atualizado.");
+    render();
+  };
+  renderIcons();
+}
+
+function renderSalesList(term) {
+  const t = (term || "").toLowerCase();
+  const rows = state.sales.slice().sort((a, b) => new Date(b.emissao) - new Date(a.emissao))
+    .filter(s => String(s.nota).includes(t) || String(s.vendedor).toLowerCase().includes(t));
+  $("#salesList").innerHTML = salesTable(rows);
+  document.querySelectorAll("#salesList tr[data-nota]").forEach(tr => tr.onclick = () => openSaleDetailModal(tr.dataset.nota));
+}
+
+function onSubmitConsulta(e) {
+  e.preventDefault();
+  const nota = $("#consultaNota").value;
+  const sale = findSaleByNumber(nota);
+  $("#consultaResult").innerHTML = sale ? consultaResultHTML(sale) : '<div class="rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">Nota fiscal não encontrada.</div>';
+}
+
+function consultaResultHTML(sale) {
+  return '<div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
+    '<div class="mb-2 flex flex-wrap items-center justify-between gap-2"><div class="font-extrabold">NF #' + esc(sale.nota) + "</div><div class=\"text-sm text-slate-500\">" + dateTimeBR(sale.emissao) + "</div></div>" +
+    '<div class="mb-3 text-sm"><span class="text-slate-500">Vendedor:</span> <strong>' + esc(sale.vendedor) + "</strong></div>" +
+    '<div class="overflow-auto scrollbar"><table class="table w-full text-sm"><thead><tr><th>Produto</th><th class="text-right">Qtd</th><th class="text-right">Preço Unit.</th><th class="text-right">Subtotal</th></tr></thead><tbody>' +
+    sale.itens.map(i => "<tr><td>" + esc(i.nome) + '</td><td class="text-right">' + i.quantidade + '</td><td class="text-right">' + money(i.preco) + '</td><td class="text-right font-semibold">' + money(i.quantidade * i.preco) + "</td></tr>").join("") +
+    "</tbody></table></div>" +
+    '<div class="mt-3 flex justify-end text-base font-extrabold">Total: ' + money(sale.valor) + "</div>" +
+    "</div>";
+}
+
+function openSaleDetailModal(nota) {
+  const sale = findSaleByNumber(nota);
+  if (!sale) return;
+  const m = document.createElement("div");
+  m.className = "fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";
+  m.innerHTML = '<div class="card w-full max-w-lg p-5"><div class="mb-3 flex justify-between"><h2 class="font-extrabold">Detalhes da nota</h2><button class="close btn btn-muted"><i data-lucide="x"></i></button></div>' + consultaResultHTML(sale) + "</div>";
+  document.body.appendChild(m);
+  m.querySelector(".close").onclick = () => m.remove();
+  renderIcons();
+}
+
+/* ---------------- Estoque ---------------- */
+function renderStock() {
+  $("#main").innerHTML = '<div class="card p-5">' +
+    '<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h2 class="font-extrabold">Produtos e estoque</h2><p class="text-xs text-slate-500">' + state.products.length + " produtos • " + kpis().items + ' itens físicos</p></div><button id="newProduct" class="btn btn-primary"><i data-lucide="plus"></i> Novo produto</button></div>' +
+    '<div class="mb-4"><input id="stockSearch" class="field max-w-lg" placeholder="Buscar por código ou nome..."></div><div id="stockList"></div></div>';
+  $("#newProduct").onclick = () => productModal();
+  $("#stockSearch").oninput = e => renderStockList(e.target.value);
+  renderStockList();
+  renderIcons();
+}
+function renderStockList(term) {
+  const t = (term || "").toLowerCase();
+  const rows = state.products.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).filter(p => String(p.codigo).includes(t) || p.nome.toLowerCase().includes(t));
+  $("#stockList").innerHTML = '<div class="overflow-auto scrollbar"><table class="table w-full text-sm"><thead><tr><th>Código</th><th>Produto</th><th>Quantidade</th><th>Preço</th><th>Valor Total</th><th>Status</th><th></th></tr></thead><tbody>' +
+    rows.map(p => {
+      const low = p.quantidade <= LOW_STOCK_THRESHOLD;
+      return "<tr><td class=\"font-bold\">" + p.codigo + "</td><td>" + esc(p.nome) + '</td><td class="font-bold">' + p.quantidade + "</td><td>" + money(p.preco) + "</td><td>" + money(p.quantidade * p.preco) + '</td><td><span class="rounded-full px-2 py-1 text-xs font-bold ' + (low ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700") + '">' + (low ? "Baixo" : "Normal") + '</span></td><td><button class="edit-prod btn btn-muted" data-id="' + p.codigo + '"><i data-lucide="pencil"></i></button></td></tr>';
+    }).join("") + "</tbody></table></div>";
+  document.querySelectorAll(".edit-prod").forEach(b => b.onclick = () => productModal(state.products.find(p => String(p.codigo) === b.dataset.id)));
+  renderIcons();
+}
+function productModal(p) {
+  const isEditing = !!p;
+  const m = document.createElement("div");
+  m.className = "fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";
+  const nextCode = p ? p.codigo : (Math.max(0, ...state.products.map(x => x.codigo)) + 1);
+  m.innerHTML = '<div class="card w-full max-w-lg p-5"><div class="mb-4 flex justify-between"><h2 class="font-extrabold">' + (isEditing ? "Editar produto" : "Novo produto") + '</h2><button class="close btn btn-muted"><i data-lucide="x"></i></button></div>' +
+    '<form class="space-y-3">' +
+    '<div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-bold">Código</label><input id="pCode" class="field" type="number" required value="' + nextCode + '" ' + (isEditing ? "readonly" : "") + '></div><div><label class="text-xs font-bold">Quantidade</label><input id="pQty" class="field" type="number" min="0" step="1" required value="' + (p ? p.quantidade : 0) + '"></div></div>' +
+    '<div><label class="text-xs font-bold">Nome</label><input id="pName" class="field" required value="' + esc(p ? p.nome : "") + '"></div>' +
+    '<div><label class="text-xs font-bold">Preço unitário</label><input id="pPrice" class="field" type="number" min="0" step="0.01" required value="' + (p ? p.preco : 0) + '"></div>' +
+    '<button class="btn btn-primary w-full">Salvar</button>' +
+    "</form></div>";
+  document.body.appendChild(m);
+  m.querySelector(".close").onclick = () => m.remove();
+  m.querySelector("form").onsubmit = e => {
+    e.preventDefault();
+    const res = saveProduct({ codigo: $("#pCode").value, nome: $("#pName").value, quantidade: parseInt($("#pQty").value, 10), preco: parseFloat($("#pPrice").value) }, isEditing);
+    if (!res.ok) { toast(res.error, "error"); return; }
+    m.remove();
+    toast("Produto salvo.");
+    render();
+  };
+  renderIcons();
+}
+
+/* ---------------- Documentação ---------------- */
+function renderDocs() {
+  $("#main").innerHTML = '<div class="card p-5"><div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h2 class="font-extrabold">Documentação</h2><p class="text-xs text-slate-500">' + state.docs.filter(d => d.status === "Pendente").length + ' pendentes</p></div><button id="newDoc" class="btn btn-primary"><i data-lucide="plus"></i> Novo documento</button></div><div class="mb-4"><input id="docSearch" class="field max-w-lg" placeholder="Buscar documento, tipo ou status..."></div><div id="docList"></div></div>';
+  $("#newDoc").onclick = () => docModal();
+  $("#docSearch").oninput = e => renderDocsList(e.target.value);
+  renderDocsList();
+  renderIcons();
+}
+function renderDocsList(term) {
+  const t = (term || "").toLowerCase();
+  const rows = state.docs.filter(d => [d.id, d.nome, d.tipo, d.status].some(x => String(x).toLowerCase().includes(t)));
+  $("#docList").innerHTML = '<div class="overflow-auto scrollbar"><table class="table w-full text-sm"><thead><tr><th>ID</th><th>Documento</th><th>Tipo</th><th>Emissão</th><th>Status</th><th></th></tr></thead><tbody>' +
+    rows.map(d => "<tr><td class=\"font-bold\">" + d.id + "</td><td>" + esc(d.nome) + "</td><td>" + esc(d.tipo) + "</td><td>" + dateBR(d.emissao) + '</td><td><select class="doc-status field max-w-40" data-id="' + d.id + '">' + ["Pendente", "Aprovado", "Arquivado", "Concluído"].map(s => "<option " + (d.status === s ? "selected" : "") + ">" + s + "</option>").join("") + '</select></td><td><button class="edit-doc btn btn-muted" data-id="' + d.id + '"><i data-lucide="pencil"></i></button></td></tr>').join("") +
+    "</tbody></table></div>";
+  document.querySelectorAll(".doc-status").forEach(s => s.onchange = () => {
+    const d = state.docs.find(x => String(x.id) === s.dataset.id);
+    d.status = s.value;
+    toast("Status atualizado.");
+  });
+  document.querySelectorAll(".edit-doc").forEach(b => b.onclick = () => docModal(state.docs.find(d => String(d.id) === b.dataset.id)));
+  renderIcons();
+}
+function docModal(d) {
+  const isEditing = !!d;
+  const m = document.createElement("div");
+  m.className = "fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";
+  const nextId = d ? d.id : (Math.max(0, ...state.docs.map(x => x.id)) + 1);
+  m.innerHTML = '<div class="card w-full max-w-lg p-5"><div class="mb-4 flex justify-between"><h2 class="font-extrabold">' + (isEditing ? "Editar documento" : "Novo documento") + '</h2><button class="close btn btn-muted"><i data-lucide="x"></i></button></div>' +
+    '<form class="space-y-3">' +
+    '<div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-bold">ID Doc</label><input id="dId" class="field" type="number" required value="' + nextId + '" ' + (isEditing ? "readonly" : "") + '></div><div><label class="text-xs font-bold">Data de emissão</label><input id="dDate" class="field" type="date" required value="' + (d ? d.emissao : new Date().toISOString().slice(0, 10)) + '"></div></div>' +
+    '<div><label class="text-xs font-bold">Nome do documento</label><input id="dName" class="field" required value="' + esc(d ? d.nome : "") + '"></div>' +
+    '<div><label class="text-xs font-bold">Tipo</label><input id="dType" class="field" required value="' + esc(d ? d.tipo : "") + '"></div>' +
+    '<div><label class="text-xs font-bold">Status</label><select id="dStatus" class="field">' + ["Pendente", "Aprovado", "Arquivado", "Concluído"].map(s => "<option " + (d && d.status === s ? "selected" : "") + ">" + s + "</option>").join("") + "</select></div>" +
+    '<button class="btn btn-primary w-full">Salvar</button>' +
+    "</form></div>";
+  document.body.appendChild(m);
+  m.querySelector(".close").onclick = () => m.remove();
+  m.querySelector("form").onsubmit = e => {
+    e.preventDefault();
+    const res = saveDoc({ id: $("#dId").value, nome: $("#dName").value, tipo: $("#dType").value, emissao: $("#dDate").value, status: $("#dStatus").value }, isEditing);
+    if (!res.ok) { toast(res.error, "error"); return; }
+    m.remove();
+    toast("Documento salvo.");
+    render();
+  };
+  renderIcons();
+}
+
+/* ---------------- Fechamento mensal (relatório) ---------------- */
+function openReportModal() {
+  const now = new Date();
+  const defaultMonth = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+  const m = document.createElement("div");
+  m.className = "fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";
+  m.innerHTML = '<div class="card w-full max-w-md p-5">' +
+    '<div class="mb-4 flex justify-between"><h2 class="font-extrabold">Gerar fechamento</h2><button class="close btn btn-muted"><i data-lucide="x"></i></button></div>' +
+    '<p class="mb-3 text-sm text-slate-500">Qual período você deseja fechar? O relatório reúne as vendas, o estoque e a documentação no formato de <strong>' + "senac_end.xlsx" + '</strong>.</p>' +
+    '<form id="reportForm" class="space-y-3">' +
+    '<div><label class="mb-1 block text-xs font-bold">Mês / ano</label><input id="reportMonth" class="field" type="month" required value="' + defaultMonth + '"></div>' +
+    '<div id="reportPreview" class="text-xs text-slate-500"></div>' +
+    '<div class="flex gap-2"><button type="button" class="close btn btn-muted flex-1">Cancelar</button><button class="btn btn-primary flex-1" type="submit"><i data-lucide="file-spreadsheet" class="h-4 w-4"></i> Gerar relatório</button></div>' +
+    "</form></div>";
+  document.body.appendChild(m);
+  const close = () => m.remove();
+  m.querySelectorAll(".close").forEach(b => b.onclick = close);
+  const updatePreview = () => {
+    const val = $("#reportMonth").value;
+    if (!val) return;
+    const qtd = salesInMonth(val).length;
+    $("#reportPreview").textContent = qtd ? qtd + " venda(s) encontrada(s) em " + monthLabel(val) + "." : "Nenhuma venda encontrada em " + monthLabel(val) + ".";
+  };
+  $("#reportMonth").oninput = updatePreview;
+  updatePreview();
+  m.querySelector("#reportForm").onsubmit = async e => {
+    e.preventDefault();
+    const val = $("#reportMonth").value;
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    const ok = await exportStyledWorkbook(val);
+    btn.disabled = false;
+    if (ok) close();
+  };
+  renderIcons();
+}
+
+/* ---------------- Restaurar dados ---------------- */
+function confirmRestore() {
+  const m = document.createElement("div");
+  m.className = "fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4";
+  m.innerHTML = '<div class="card w-full max-w-sm p-5"><h2 class="mb-2 font-extrabold">Restaurar dados iniciais?</h2><p class="mb-4 text-sm text-slate-500">Todas as vendas, alterações de estoque e documentos feitos nesta sessão serão descartados. Esta ação não pode ser desfeita.</p><div class="flex gap-2"><button class="close btn btn-muted flex-1">Cancelar</button><button id="doRestore" class="btn btn-primary flex-1">Restaurar</button></div></div>';
+  document.body.appendChild(m);
+  m.querySelector(".close").onclick = () => m.remove();
+  m.querySelector("#doRestore").onclick = () => { resetState(); m.remove(); render(); };
+}
+
+/* ---------------- Login / logout / navegação ---------------- */
+function bindStaticEvents() {
+  $("#loginForm").onsubmit = e => {
+    e.preventDefault();
+    const usuario = $("#loginUser").value.trim();
+    const senha = $("#loginPassword").value;
+    if (login(usuario, senha)) { resetState(true); showApp(); state.page = "dashboard"; render(); }
+    else toast("Usuário ou senha incorretos.", "error");
+  };
+  $("#logoutBtn").onclick = () => { logout(); showLogin(); };
+  $("#restoreBtn").onclick = confirmRestore;
+  $("#reportBtnSide").onclick = openReportModal;
+  document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => { state.page = b.dataset.page; $("#sidebar").classList.add("-translate-x-full"); render(); });
+  $("#menuBtn").onclick = () => $("#sidebar").classList.toggle("-translate-x-full");
+  $("#themeBtn").onclick = () => { document.documentElement.classList.toggle("dark"); localStorage.setItem("erp_dark", document.documentElement.classList.contains("dark") ? "1" : "0"); };
+  if (localStorage.getItem("erp_dark") === "1") document.documentElement.classList.add("dark");
+}
+
+function init() {
+  bindStaticEvents();
+  showLogin();
+  renderIcons();
+}
+document.addEventListener("DOMContentLoaded", init);
+
 </script>
 </body>
 </html>
