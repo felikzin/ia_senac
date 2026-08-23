@@ -90,6 +90,25 @@ function toast(msg, type) {
   t.classList.remove("hidden");
 }
 
+/* ---------- horário comercial aleatório (08:00–12:00 ou 14:00–18:00) ---------- */
+function randomBusinessTime() {
+  const janelas = [[8, 0, 12, 0], [14, 0, 18, 0]];
+  const j = janelas[Math.floor(Math.random() * janelas.length)];
+  const inicioMin = j[0] * 60 + j[1];
+  const fimMin = j[2] * 60 + j[3];
+  const totalMin = fimMin - inicioMin;
+  const offset = Math.floor(Math.random() * totalMin);
+  const totalComOffset = inicioMin + offset;
+  return { hh: Math.floor(totalComOffset / 60), mm: totalComOffset % 60, ss: Math.floor(Math.random() * 60) };
+}
+/** Mantém a data (ano/mês/dia) recebida, mas substitui o horário por um horário comercial aleatório. */
+function withRandomBusinessTime(dateLike) {
+  const d = new Date(dateLike);
+  const t = randomBusinessTime();
+  d.setHours(t.hh, t.mm, t.ss, 0);
+  return d.toISOString();
+}
+
 /* ---------- nome curto de produto (usado na coluna "Total produtos:") ---------- */
 function shortName(nomeCompleto) {
   const i = nomeCompleto.indexOf(" (");
@@ -138,7 +157,7 @@ function loadInitialData() {
   const sales = structuredClone(INITIAL_DATA.sales).map(s => {
     const parsed = parseSaleItemsFromText(s.totalProdutosTexto, products);
     if (parsed.naoEncontrados.length) console.warn("NF " + s.nota + ": itens nao reconhecidos:", parsed.naoEncontrados);
-    return Object.assign({}, s, { itens: parsed.itens, historica: true });
+    return Object.assign({}, s, { itens: parsed.itens, emissao: withRandomBusinessTime(s.emissao), historica: true });
   });
   return { products: products, sales: sales, docs: docs };
 }
@@ -224,7 +243,7 @@ function createSale(input) {
   const valor = calculateSaleTotal(itens);
   const sale = {
     nota: Number(nota),
-    emissao: new Date().toISOString(),
+    emissao: withRandomBusinessTime(new Date()),
     vendedor: vendedor.trim(),
     itens: itens,
     totalProdutosTexto: generateProductsText(itens),
@@ -316,7 +335,7 @@ const COR_HEADER_TXT = "FFFFFFFF";
 const FONTE = "Arial";
 const FMT_MOEDA = '"R$" #,##0.00';
 const FMT_DATA = "dd/mm/yyyy";
-const FMT_DATAHORA = "dd/mm/yyyy hh:mm";
+const FMT_DATAHORA = "dd/mm/yyyy, hh:mm";
 
 function thinBorder() {
   return { top: { style: "thin", color: { argb: "FFCBD5E1" } }, left: { style: "thin", color: { argb: "FFCBD5E1" } }, bottom: { style: "thin", color: { argb: "FFCBD5E1" } }, right: { style: "thin", color: { argb: "FFCBD5E1" } } };
@@ -324,18 +343,25 @@ function thinBorder() {
 function doubleTopBorder() {
   return { top: { style: "double", color: { argb: "FF2B4C6F" } } };
 }
+/** Aplica uma borda a todas as colunas de colStart até colEnd na mesma linha (garante linha contínua mesmo com células mescladas). */
+function applyBorderAcross(row, colStart, colEnd, borderObj) {
+  for (let c = colStart; c <= colEnd; c++) {
+    row.getCell(c).border = Object.assign({}, row.getCell(c).border, borderObj);
+  }
+}
 
 function styleTitle(ws, ref, text) {
   ws.mergeCells(ref);
   const cell = ws.getCell(ref.split(":")[0]);
   cell.value = text;
   cell.font = { name: FONTE, size: 16, bold: true, color: { argb: COR_TITULO } };
-  cell.alignment = { vertical: "center", horizontal: "left" };
+  cell.alignment = { vertical: "center", horizontal: "center" };
 }
 
-function styleHeaderRow(ws, row, cols) {
-  cols.forEach((label, idx) => {
-    const cell = row.getCell(idx + 1);
+/** startCol: coluna (1=A, 2=B...) onde o primeiro rótulo é escrito — precisa bater com as colunas reais dos dados. */
+function styleHeaderRow(ws, row, startCol, labels) {
+  labels.forEach((label, idx) => {
+    const cell = row.getCell(startCol + idx);
     cell.value = label;
     cell.font = { name: FONTE, size: 11, bold: true, color: { argb: COR_HEADER_TXT } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_HEADER_BG } };
@@ -352,9 +378,7 @@ function buildMenuSheet(wb, ctx) {
   ws.getCell("B3").font = { name: FONTE, size: 10, italic: true, color: { argb: "FF64748B" } };
 
   const headerRow = ws.getRow(5);
-  styleHeaderRow(ws, headerRow, ["", ""]);
-  ws.getCell("B5").value = "Indicador";
-  ws.getCell("C5").value = "Valor";
+  styleHeaderRow(ws, headerRow, 2, ["Indicador", "Valor"]);
 
   const linhas = [
     ["Faturamento do período", ctx.fatur, FMT_MOEDA],
@@ -381,12 +405,7 @@ function buildFinanceiroSheet(wb, ctx) {
   styleTitle(ws, "B2:F2", "CONTROLE FINANCEIRO — Fechamento " + ctx.label);
 
   const headerRow = ws.getRow(4);
-  styleHeaderRow(ws, headerRow, ["", "", "", "", ""]);
-  ws.getCell("B4").value = "Nota";
-  ws.getCell("C4").value = "Emissão";
-  ws.getCell("D4").value = "Vendedor";
-  ws.getCell("E4").value = "Total produtos:";
-  ws.getCell("F4").value = "Valor";
+  styleHeaderRow(ws, headerRow, 2, ["Nota", "Emissão", "Vendedor", "Total produtos:", "Valor"]);
 
   let r = 5;
   ctx.sales.forEach(s => {
@@ -407,16 +426,16 @@ function buildFinanceiroSheet(wb, ctx) {
     r++;
   });
   const totalRow = ws.getRow(r);
+  const ultimaLinhaDados = r - 1;
   ws.mergeCells("B" + r + ":E" + r);
   totalRow.getCell(2).value = "Total do período:";
   totalRow.getCell(2).font = { name: FONTE, size: 11, bold: true };
-  totalRow.getCell(2).border = doubleTopBorder();
-  totalRow.getCell(6).value = { formula: "SUM(F5:F" + (r - 1) + ")", result: ctx.fatur };
+  totalRow.getCell(6).value = { formula: "SUM(F5:F" + ultimaLinhaDados + ")", result: ctx.fatur };
   totalRow.getCell(6).numFmt = FMT_MOEDA;
   totalRow.getCell(6).font = { name: FONTE, size: 11, bold: true, color: { argb: COR_TITULO } };
-  totalRow.getCell(6).border = doubleTopBorder();
+  applyBorderAcross(totalRow, 2, 6, doubleTopBorder());
 
-  // Painel "Consultar Nota Fiscal" (referência visual da planilha original)
+  // Painel "Consultar Nota Fiscal" — PROCV (VLOOKUP) dinâmico em função de I4
   ws.mergeCells("H2:I2");
   ws.getCell("H2").value = "CONSULTAR NOTA FISCAL:";
   ws.getCell("H2").font = { name: FONTE, size: 13, bold: true, color: { argb: COR_TITULO } };
@@ -424,7 +443,9 @@ function buildFinanceiroSheet(wb, ctx) {
   ws.getCell("H4").font = { name: FONTE, size: 10, bold: true };
   const exemplo = ctx.sales[0];
   if (exemplo) {
+    const tabela = "B5:F" + ultimaLinhaDados;
     ws.getCell("I4").value = exemplo.nota;
+    ws.getCell("I4").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF9DB" } };
     ws.getCell("I4").alignment = { horizontal: "center" };
     ["H5", "I5", "J5"].forEach((c, idx) => {
       ws.getCell(c).value = ["Emissão", "Vendedor", "Valor"][idx];
@@ -432,10 +453,10 @@ function buildFinanceiroSheet(wb, ctx) {
       ws.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_HEADER_BG } };
       ws.getCell(c).alignment = { horizontal: "center" };
     });
-    ws.getCell("H6").value = new Date(exemplo.emissao);
+    ws.getCell("H6").value = { formula: "VLOOKUP(I4," + tabela + ",2,FALSE)", result: new Date(exemplo.emissao) };
     ws.getCell("H6").numFmt = FMT_DATAHORA;
-    ws.getCell("I6").value = exemplo.vendedor;
-    ws.getCell("J6").value = exemplo.valor;
+    ws.getCell("I6").value = { formula: "VLOOKUP(I4," + tabela + ",3,FALSE)", result: exemplo.vendedor };
+    ws.getCell("J6").value = { formula: "VLOOKUP(I4," + tabela + ",5,FALSE)", result: exemplo.valor };
     ws.getCell("J6").numFmt = FMT_MOEDA;
     ["H4", "I4", "H6", "I6", "J6"].forEach(c => ws.getCell(c).border = thinBorder());
   }
@@ -444,15 +465,10 @@ function buildFinanceiroSheet(wb, ctx) {
 function buildEstoqueSheet(wb, ctx) {
   const ws = wb.addWorksheet("Estoque", { views: [{ showGridLines: false }] });
   ws.columns = [{ width: 3 }, { width: 14 }, { width: 55 }, { width: 14 }, { width: 16 }, { width: 16 }];
-  styleTitle(ws, "B2:C2", "CONTROLE DE ESTOQUE — situação em " + ctx.geradoEm);
+  styleTitle(ws, "B2:F2", "CONTROLE DE ESTOQUE — situação em " + ctx.geradoEm);
 
   const headerRow = ws.getRow(4);
-  styleHeaderRow(ws, headerRow, ["", "", "", "", ""]);
-  ws.getCell("B4").value = "Cód Produto";
-  ws.getCell("C4").value = "Nome do Produto";
-  ws.getCell("D4").value = "Quantidade";
-  ws.getCell("E4").value = "Preço Unitário";
-  ws.getCell("F4").value = "Valor Total";
+  styleHeaderRow(ws, headerRow, 2, ["Cód Produto", "Nome do Produto", "Quantidade", "Preço Unitário", "Valor Total"]);
 
   const produtosOrdenados = ctx.products.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   let r = 5;
@@ -477,21 +493,17 @@ function buildEstoqueSheet(wb, ctx) {
   totalRow.getCell(4).value = { formula: "SUM(D5:D" + (r - 1) + ")", result: ctx.products.reduce((a, p) => a + p.quantidade, 0) };
   totalRow.getCell(6).value = { formula: "SUM(F5:F" + (r - 1) + ")", result: round2(ctx.products.reduce((a, p) => a + p.quantidade * p.preco, 0)) };
   totalRow.getCell(6).numFmt = FMT_MOEDA;
-  [2, 4, 6].forEach(c => { totalRow.getCell(c).border = doubleTopBorder(); totalRow.getCell(c).font = { name: FONTE, size: 11, bold: true, color: { argb: COR_TITULO } }; });
+  applyBorderAcross(totalRow, 2, 6, doubleTopBorder());
+  [2, 4, 6].forEach(c => { totalRow.getCell(c).font = { name: FONTE, size: 11, bold: true, color: { argb: COR_TITULO } }; });
 }
 
 function buildDocumentacaoSheet(wb, ctx) {
   const ws = wb.addWorksheet("Documentação", { views: [{ showGridLines: false }] });
   ws.columns = [{ width: 3 }, { width: 10 }, { width: 42 }, { width: 24 }, { width: 16 }, { width: 16 }];
-  styleTitle(ws, "B2:C2", "CONTROLE DOCUMENTAL — situação em " + ctx.geradoEm);
+  styleTitle(ws, "B2:F2", "CONTROLE DOCUMENTAL — situação em " + ctx.geradoEm);
 
   const headerRow = ws.getRow(4);
-  styleHeaderRow(ws, headerRow, ["", "", "", "", ""]);
-  ws.getCell("B4").value = "ID Doc";
-  ws.getCell("C4").value = "Nome do Documento";
-  ws.getCell("D4").value = "Tipo";
-  ws.getCell("E4").value = "Data de Emissão";
-  ws.getCell("F4").value = "Status";
+  styleHeaderRow(ws, headerRow, 2, ["ID Doc", "Nome do Documento", "Tipo", "Data de Emissão", "Status"]);
 
   let r = 5;
   ctx.docs.forEach(d => {
@@ -642,11 +654,11 @@ function renderSales() {
   $("#main").innerHTML =
     '<div class="grid gap-4 xl:grid-cols-3">' +
     '<div class="card p-5 xl:col-span-1">' +
-    '<div class="mb-4"><h2 class="font-extrabold">Nova nota fiscal</h2><p class="text-xs text-slate-500">A confirmação abate o estoque imediatamente. A emissão é registrada no momento da confirmação.</p></div>' +
+    '<div class="mb-4"><h2 class="font-extrabold">Nova nota fiscal</h2><p class="text-xs text-slate-500">A confirmação abate o estoque imediatamente. A emissão usa a data de hoje com um horário comercial aleatório (08h–12h ou 14h–18h).</p></div>' +
     '<form id="saleForm" class="space-y-3">' +
     '<div class="grid grid-cols-2 gap-3">' +
     '<div><label class="mb-1 block text-xs font-bold">Nº da Nota</label><input id="saleNota" class="field" type="number" min="1" required value="' + nextNota() + '"></div>' +
-    '<div><label class="mb-1 block text-xs font-bold">Emissão</label><div class="field flex items-center gap-2 bg-slate-100 text-slate-500 dark:bg-slate-800"><i data-lucide="clock" class="h-4 w-4"></i> Agora</div></div>' +
+    '<div><label class="mb-1 block text-xs font-bold">Emissão</label><div class="field flex items-center gap-2 bg-slate-100 text-slate-500 dark:bg-slate-800"><i data-lucide="clock" class="h-4 w-4"></i> Hoje, horário comercial</div></div>' +
     "</div>" +
     '<div><label class="mb-1 block text-xs font-bold">Vendedor</label><select id="saleSeller" class="field">' +
     vendedores.map(v => "<option>" + esc(v) + "</option>").join("") +
